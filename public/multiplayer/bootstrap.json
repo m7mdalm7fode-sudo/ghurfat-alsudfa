@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "build": "chamber6-v2",
+  "build": "chamber6-v3",
   "signalingUrl": "wss://ghurfat-alsudfa-server.onrender.com/ws",
   "iceTransportPolicy": "all"
 }

@@ -1,6 +1,6 @@
 import {SEATS, type Bullet, type Result, type Role, type RoomState, type Seat} from '../net/protocol'
 import {CHARACTERS} from './characters'
-import {sprite, SW, SH, type View} from './pixel'
+import {silhouette, sprite, SW, SH, type View} from './pixel'
 
 /**
  * Pixel-art desert camp drawn on a 320×200 canvas and upscaled without smoothing. The fire is the
@@ -69,17 +69,12 @@ function disc(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, co
 function buildGround() {
   const {c, g} = canvas()
   seed = 11
-  const sand = [[94, 66, 41], [101, 71, 44], [108, 76, 47], [116, 83, 51]]
-  const img = g.createImageData(W, H)
-  for (let y = HORIZON; y < H; y++) for (let x = 0; x < W; x++) {
-    const r = rnd()
-    const i = r < .08 ? 0 : r < .5 ? 1 : r < .9 ? 2 : 3
-    img.data.set([...sand[i], 255], (y * W + x) * 4)
-  }
-  g.putImageData(img, 0, 0)
+  // Calm sand: one base tone with sparse specks (less noise = clearer picture).
+  g.fillStyle = 'rgb(104,74,46)'; g.fillRect(0, HORIZON, W, H - HORIZON)
+  for (let k = 0; k < 700; k++) { const x = Math.floor(rnd() * W), y = HORIZON + Math.floor(rnd() * (H - HORIZON)); g.fillStyle = rnd() < .5 ? 'rgb(90,63,39)' : 'rgb(118,85,53)'; g.fillRect(x, y, 1, 1) }
   // Wind ripples.
-  g.fillStyle = 'rgb(76,52,32)'
-  for (let k = 0; k < 40; k++) { const x = Math.floor(rnd() * W), y = HORIZON + 4 + Math.floor(rnd() * (H - HORIZON - 4)); g.fillRect(x, y, 4 + Math.floor(rnd() * 8), 1) }
+  g.fillStyle = 'rgb(88,62,38)'
+  for (let k = 0; k < 34; k++) { const x = Math.floor(rnd() * W), y = HORIZON + 4 + Math.floor(rnd() * (H - HORIZON - 4)); g.fillRect(x, y, 5 + Math.floor(rnd() * 9), 1) }
 
   // Pickup truck (generic, no brand), parked behind the camp on the left.
   const body = '#c49a6c', dark = '#8f6b47', win = '#120c0a'
@@ -90,14 +85,7 @@ function buildGround() {
   for (const wx of [30, 100]) { disc(g, wx, 88, 9, '#16100d'); disc(g, wx, 88, 4, '#6b5a4a'); disc(g, wx, 88, 1, '#16100d') }
   g.fillStyle = '#e8c27a'; g.fillRect(120, 66, 2, 3)
 
-  // Bayt al-sha'r: black goat-hair tent on the right.
-  for (let y = 54; y < 92; y++) {
-    const roof = y < 64, half = roof ? 30 + (y - 54) * 1.8 : 48
-    g.fillStyle = (y - 54) % 5 === 0 ? '#4a3326' : '#2a1d17'
-    g.fillRect(Math.round(262 - half), y, Math.round(half * 2), 1)
-  }
-  g.fillStyle = '#0b0705'; g.fillRect(250, 68, 22, 24)
-  g.fillStyle = '#5a3a26'; g.fillRect(232, 50, 1, 42); g.fillRect(292, 50, 1, 42)
+  tent(g)
   // Majlis rug in front of the tent.
   g.fillStyle = '#7a2030'; g.fillRect(234, 92, 56, 6)
   g.fillStyle = '#d9a441'; for (let x = 236; x < 288; x += 4) g.fillRect(x, 94, 1, 1)
@@ -109,20 +97,69 @@ function buildGround() {
     const t = a / 14 * Math.PI * 2, x = Math.round(FX + 13 * Math.cos(t)), y = Math.round(FY + 4 * Math.sin(t))
     g.fillStyle = a % 2 ? '#6d625a' : '#55493f'; g.fillRect(x - 1, y - 1, 3, 2)
   }
-  // Dallah and two finjan cups.
-  g.fillStyle = '#d9a441'; g.fillRect(133, 101, 5, 8); g.fillRect(134, 99, 3, 2); g.fillRect(135, 97, 1, 2); g.fillRect(130, 100, 3, 1); g.fillRect(129, 99, 1, 1)
-  g.fillStyle = '#b7832e'; g.fillRect(137, 102, 1, 7); g.fillRect(138, 103, 1, 4)
-  g.fillStyle = '#f0e6d2'; g.fillRect(140, 108, 2, 2); g.fillRect(143, 109, 2, 2)
-  // Rug for the face-down shells.
-  g.fillStyle = '#6d2533'; g.fillRect(178, 104, 52, 16)
-  g.fillStyle = '#d9a441'; g.fillRect(178, 104, 52, 1); g.fillRect(178, 119, 52, 1)
-  for (let x = 180; x < 229; x += 4) g.fillRect(x, 111, 1, 1)
+  dallah(g, 128, 114)
+  // Two finjan cups on a small tray.
+  g.fillStyle = '#7a5230'; g.fillRect(137, 113, 11, 2)
+  for (const x of [138, 143]) { g.fillStyle = '#f4ead8'; g.fillRect(x, 110, 4, 3); g.fillRect(x + 1, 113, 2, 1); g.fillStyle = '#c8324a'; g.fillRect(x, 111, 4, 1) }
+  // Rug for the rifle and the bullets.
+  g.fillStyle = '#6d2533'; g.fillRect(176, 100, 58, 22)
+  g.fillStyle = '#d9a441'; g.fillRect(176, 100, 58, 1); g.fillRect(176, 121, 58, 1); g.fillRect(176, 100, 1, 22); g.fillRect(233, 100, 1, 22)
+  for (let x = 179; x < 232; x += 4) { g.fillRect(x, 102, 1, 1); g.fillRect(x, 119, 1, 1) }
   return c
 }
 
-export const ITEM_ICON: Record<string, string> = {scope: '🔭', dallah: '☕', rope: '🪢', bukhoor: '💨'}
-export const ITEM_NAME: Record<string, string> = {scope: 'المنظار', dallah: 'الدلّة', rope: 'الحبل', bukhoor: 'البخور'}
-export const ITEM_HINT: Record<string, string> = {scope: 'تعرف الطلقة القادمة', dallah: 'تسترد روحًا', rope: 'التالي يخسر دوره', bukhoor: 'يكشف الباقي للجميع'}
+/** Brass dallah: crown lid, long crescent beak spout, side handle. Base centre at (cx, by). */
+function dallah(g: CanvasRenderingContext2D, cx: number, by: number) {
+  const gold = '#e0aa45', hi = '#f6d27c', mid = '#b8822c', dark = '#7a5418'
+  const rows = [1, 1, 3, 5, 5, 3, 3, 4, 8, 9, 10, 11, 11, 11, 11, 10, 10, 9, 8, 10, 12]
+  const top = by - rows.length
+  rows.forEach((w, j) => {
+    const x0 = cx - (w >> 1)
+    g.fillStyle = gold; g.fillRect(x0, top + j, w, 1)
+    if (w > 2) { g.fillStyle = hi; g.fillRect(x0 + 1, top + j, 1, 1); g.fillStyle = mid; g.fillRect(x0 + w - 2, top + j, 2, 1) }
+  })
+  g.fillStyle = dark; g.fillRect(cx - 4, top + 8, 8, 1); g.fillRect(cx - 6, top + 19, 12, 1)
+  // Beak spout rising to the left.
+  const beak = [[-5, 10], [-6, 9], [-7, 8], [-8, 7], [-9, 6], [-10, 5], [-11, 4], [-12, 3]]
+  for (const [dx, dy] of beak) { g.fillStyle = gold; g.fillRect(cx + dx, top + dy, 2, 2); g.fillStyle = hi; g.fillRect(cx + dx, top + dy, 1, 1) }
+  g.fillStyle = mid; g.fillRect(cx - 13, top + 2, 2, 1)
+  // Handle on the right.
+  g.fillStyle = mid
+  g.fillRect(cx + 5, top + 5, 3, 1); g.fillRect(cx + 7, top + 6, 1, 9); g.fillRect(cx + 5, top + 15, 3, 1)
+}
+
+/** Bayt al-sha'r: striped goat-hair roof on three poles, sadu band, open front with cushions. */
+function tent(g: CanvasRenderingContext2D) {
+  const L = 212, R = 312, poles = [230, 262, 294]
+  for (let x = L; x <= R; x++) {
+    // Roof sags between pole peaks.
+    const d = Math.min(...poles.map(p => Math.abs(x - p)))
+    const topY = Math.round(50 + Math.min(7, d * .45))
+    for (let y = topY; y < 66; y++) { g.fillStyle = y === topY ? '#5a3f2c' : (y - topY) % 4 < 2 ? '#2c1e17' : '#3a281e'; g.fillRect(x, y, 1, 1) }
+  }
+  // Sadu band: red, white and black triangles.
+  for (let x = L; x <= R; x++) {
+    const k = (x - L) % 6
+    g.fillStyle = '#a8202e'; g.fillRect(x, 66, 1, 4)
+    g.fillStyle = '#efe2c6'; g.fillRect(x, 67 + Math.abs(k - 3) % 3, 1, 1)
+    g.fillStyle = '#120a08'; g.fillRect(x, 69, 1, 1)
+  }
+  // Walls with an open front.
+  g.fillStyle = '#1e1410'; g.fillRect(L, 70, R - L + 1, 22)
+  g.fillStyle = '#2c1e17'; for (let x = L; x <= R; x += 5) g.fillRect(x, 70, 1, 22)
+  g.fillStyle = '#4a2418'; g.fillRect(244, 70, 38, 22)
+  g.fillStyle = '#8a2232'; g.fillRect(246, 84, 34, 6)
+  g.fillStyle = '#c84a3a'; g.fillRect(246, 84, 34, 1)
+  g.fillStyle = '#e8b84a'; for (let x = 248; x < 280; x += 6) g.fillRect(x, 86, 2, 2)
+  g.fillStyle = '#6b4a2a'; for (const p of poles) g.fillRect(p, 50, 1, p === 262 ? 42 : 16)
+  // Guy ropes and stakes.
+  g.fillStyle = '#8a6a48'
+  for (let i = 0; i < 14; i++) { g.fillRect(L - i, 64 + i * 2, 1, 2); g.fillRect(R + i, 64 + i * 2, 1, 2) }
+}
+
+export const ITEM_ICON: Record<string, string> = {scope: '🔭', dallah: '☕', rope: '🪢', bukhoor: '💨', double: '💥', steal: '🖐️', eject: '⏏️', flip: '🔄'}
+export const ITEM_NAME: Record<string, string> = {scope: 'المنظار', dallah: 'الدلّة', rope: 'الحبل', bukhoor: 'البخور', double: 'طلقة دبل', steal: 'سرقة', eject: 'حذف طلقة', flip: 'تبديل'}
+export const ITEM_HINT: Record<string, string> = {scope: 'تعرف الطلقة القادمة', dallah: 'تسترد روحًا', rope: 'تختار لاعبًا يخسر دوره', bukhoor: 'يكشف الباقي للجميع', double: 'الحيّة تأخذ روحين', steal: 'تأخذ أداة من لاعب', eject: 'ترمي الطلقة القادمة', flip: 'الفارغة حيّة والعكس'}
 
 type Spark = {x: number; y: number; vx: number; vy: number; life: number; col: string}
 
@@ -170,7 +207,7 @@ export class Stage {
       b.type = 'button'
       b.className = 'seat'
       b.style.setProperty('--c', CHARACTERS[seat].color)
-      b.innerHTML = `<span class="plate"><b class="nm"></b><small class="tt"></small></span>`
+      b.innerHTML = `<span class="plate"><b class="nm"></b><span class="hp"></span><small class="tt"></small></span>`
       b.addEventListener('click', () => this.onSeat?.(seat))
       wrap.appendChild(b)
       this.seats.set(seat, b)
@@ -224,9 +261,11 @@ export class Stage {
       b.classList.toggle('targetable', targets.includes(seat))
       b.disabled = !targets.includes(seat)
       b.querySelector('.nm')!.textContent = present ? (seat === role ? 'أنت' : st.name || CHARACTERS[seat].title) : ''
-      const hearts = '♥'.repeat(Math.max(0, st?.lives || 0)) + '♡'.repeat(Math.max(0, 3 - (st?.lives || 0)))
-      const items = (st?.items || []).map(i => ITEM_ICON[i]).join('')
-      b.querySelector('.tt')!.textContent = !present ? '' : s.phase === 'ended' && s.winner === seat ? `الفائز · ${st.score}★` : out ? 'خرج' : live ? `${hearts}${items ? ' · ' + items : ''}` : `${CHARACTERS[seat].title} · ${st.score}★`
+      const max = s.match?.max_lives || 3, lives = Math.max(0, st?.lives || 0)
+      const hp = b.querySelector<HTMLElement>('.hp')!
+      hp.innerHTML = present && live ? `${'<i>♥</i>'.repeat(Math.min(lives, max))}${'<i class="off">♥</i>'.repeat(Math.max(0, max - lives))}` : ''
+      const tags = [st?.double ? '💥×2' : '', st?.skip ? '🪢 مربوط' : ''].filter(Boolean).join(' ')
+      b.querySelector('.tt')!.textContent = !present ? '' : s.phase === 'ended' && s.winner === seat ? `فاز بالجولة · ${st.score}★` : out ? 'خرج' : live ? `${tags || CHARACTERS[seat].title} · ${st.score}★` : `${CHARACTERS[seat].title} · ${st.score}★`
       b.setAttribute('aria-label', present ? `${st.name} — ${CHARACTERS[seat].title}` : 'مقعد شاغر')
     }
     if (s.phase === 'waiting' || s.phase === 'countdown') this.hideStamp()
@@ -281,13 +320,14 @@ export class Stage {
     w.clearRect(0, 0, W, H)
     w.drawImage(this.ground, 0, 0)
     // The rifle rests on the rug unless someone is holding it; unknown bullets lie beside it.
-    if (!this.armed) this.rifle(w, 182, 108, 1)
+    if (!this.armed) this.rifle(w, 180, 103)
     const left = live ? s!.chamber.total : 0
     for (let i = 0; i < left; i++) {
-      const x = 204 - Math.round(left * 4 / 2) + i * 4
-      w.fillStyle = '#c8a24a'; w.fillRect(x, 113, 2, 4)
-      w.fillStyle = '#3a2a22'; w.fillRect(x, 117, 2, 1)
-      w.fillStyle = '#ffe08a'; w.fillRect(x, 113, 1, 1)
+      const x = 205 - Math.round(left * 5 / 2) + i * 5
+      w.fillStyle = '#0a0605'; w.fillRect(x - 1, 111, 5, 8)
+      w.fillStyle = '#d4ac52'; w.fillRect(x, 112, 3, 5)
+      w.fillStyle = '#ffe08a'; w.fillRect(x, 112, 1, 4)
+      w.fillStyle = '#5a4030'; w.fillRect(x, 117, 3, 1)
     }
     const order = [...SEATS].sort((a, b) => this.slots[a].y - this.slots[b].y)
     for (const seat of order) {
@@ -304,13 +344,13 @@ export class Stage {
       if (out) {
         // Slumped and greyed: head bowed, sitting lower.
         const drop = Math.round(sh * .12)
-        w.drawImage(sprite(seat, sl.view, 1, true), x0, y0 + drop, sw, sh - drop)
+        this.outlined(w, sprite(seat, sl.view, 1, true), silhouette(seat, sl.view, 1, true), x0, y0 + drop, sw, sh - drop)
         continue
       }
       const frame = (this.calm ? 0 : Math.floor(t * 1.1 + SEATS.indexOf(seat) * .7) % 2) as 0 | 1
       const hit = this.hit && this.hit.seat === seat && t - this.hit.t0 < .6 && this.hit.kind === 'live'
       const dx = hit && !this.calm ? (Math.floor(t * 30) % 2 ? 1 : -1) : 0
-      w.drawImage(sprite(seat, sl.view, frame), x0 + dx, y0, sw, sh)
+      this.outlined(w, sprite(seat, sl.view, frame), silhouette(seat, sl.view, frame), x0 + dx, y0, sw, sh)
     }
     this.light(t, flash, fa)
 
@@ -332,7 +372,8 @@ export class Stage {
       const i = y * W + x, p = i * 4
       if (d[p + 3] === 0) continue
       const f = this.fall[i]
-      const L = Math.floor((.14 + flick * boost * f) * 6 + dither(x, y)) / 6
+      // 8 light levels, soft dither only at band edges: smoother and clearer than heavy checkering.
+      const L = Math.floor((.26 + flick * boost * f * .95) * 8 + .25 + dither(x, y) * .5) / 8
       d[p] = Math.min(255, d[p] * L * 1.32 + red * f)
       d[p + 1] = Math.min(255, d[p + 1] * L * 1.0 + teal * f * .8)
       d[p + 2] = Math.min(255, d[p + 2] * (L * .72 + .09) + teal * f)
@@ -415,13 +456,20 @@ export class Stage {
     if (this.flash && this.flash.kind === 'live' && t - this.flash.t0 < .08 && !this.calm) { g.fillStyle = 'rgba(255,240,200,.55)'; g.fillRect(0, 0, W, H) }
   }
 
+  /** Draws a sprite with a 1px dark outline so it separates from the sand at any light level. */
+  private outlined(g: CanvasRenderingContext2D, spr: HTMLCanvasElement, sil: HTMLCanvasElement, x: number, y: number, w: number, h: number) {
+    for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) g.drawImage(sil, x + ox, y + oy, w, h)
+    g.drawImage(spr, x, y, w, h)
+  }
+
   /** A pixel rifle lying on the rug: wooden stock, dark barrel. */
-  private rifle(g: CanvasRenderingContext2D, x: number, y: number, s: number) {
-    g.fillStyle = '#6b3f22'; g.fillRect(x, y + 1, 12 * s, 3 * s); g.fillRect(x, y + 3, 4 * s, 2 * s)
-    g.fillStyle = '#8a5530'; g.fillRect(x + 1, y + 1, 10 * s, 1)
-    g.fillStyle = '#2a2a2e'; g.fillRect(x + 12 * s, y + 1, 6 * s, 3 * s)
-    g.fillStyle = '#4a4a52'; g.fillRect(x + 18 * s, y + 1, 26 * s, 2 * s)
-    g.fillStyle = '#6a6a74'; g.fillRect(x + 18 * s, y + 1, 26 * s, 1)
-    g.fillStyle = '#1a1a1e'; g.fillRect(x + 14 * s, y + 4, 2 * s, 2 * s)
+  private rifle(g: CanvasRenderingContext2D, x: number, y: number) {
+    const px = (dx: number, dy: number, w: number, h: number, c: string) => { g.fillStyle = c; g.fillRect(x + dx, y + dy, w, h) }
+    // Outline first, then wooden stock, steel receiver, long barrel with a front sight.
+    px(-1, 0, 52, 7, '#0a0605')
+    px(0, 1, 4, 5, '#5a3218'); px(4, 2, 10, 3, '#6b3f22'); px(1, 1, 12, 1, '#9a6234'); px(0, 5, 3, 1, '#2a1a10')
+    px(14, 1, 8, 4, '#3a3a40'); px(14, 1, 8, 1, '#6a6a74'); px(16, 5, 4, 2, '#2a2a2e'); px(17, 5, 2, 1, '#0a0605')
+    px(22, 2, 28, 2, '#55555e'); px(22, 2, 28, 1, '#9a9aa6'); px(22, 4, 18, 1, '#3a3a40')
+    px(48, 1, 1, 1, '#9a9aa6'); px(26, 4, 8, 1, '#6b3f22')
   }
 }

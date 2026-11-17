@@ -98,6 +98,24 @@ export function sprite(seat: Seat, view: View, frame: 0 | 1, out = false): HTMLC
   return cv
 }
 
+/** Solid dark copy of a sprite, drawn offset behind it as a 1px outline so figures read clearly. */
+export function silhouette(seat: Seat, view: View, frame: 0 | 1, out = false): HTMLCanvasElement {
+  const key = `sil${seat}${view}${frame}${out}`
+  const hit = cache.get(key)
+  if (hit) return hit
+  const src = sprite(seat, view, frame, out)
+  const cv = document.createElement('canvas')
+  cv.width = SW
+  cv.height = SH
+  const g = cv.getContext('2d')!
+  g.drawImage(src, 0, 0)
+  g.globalCompositeOperation = 'source-in'
+  g.fillStyle = '#0a0605'
+  g.fillRect(0, 0, SW, SH)
+  cache.set(key, cv)
+  return cv
+}
+
 /** A crisp, upscaled portrait image for menus. */
 export function portraitURL(seat: Seat, scale = 6): string {
   const s = sprite(seat, 'front', 0)
