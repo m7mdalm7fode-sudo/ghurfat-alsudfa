@@ -62,21 +62,19 @@ async function boot(){
  <div class="hero-side"><div class="title-stage"></div><div class="hero-lineup" aria-label="شخصيات المجلس">${lineup}</div></div>
 </section>
 <section class="game-view" data-view="game">
- <header>
-  <div class="conn"><span class="status-dot"></span><span class="conn-text">غير متصل</span><b class="room-label"></b></div>
-  <button class="ghost" data-action="invite">نسخ الدعوة</button>
-  <button class="ghost toggle" data-action="sound" aria-pressed="true">الصوت</button>
-  <button class="ghost toggle" data-action="calm" aria-pressed="false">حركة أقل</button>
-  <button class="ghost" data-action="leave">خروج</button>
- </header>
- <div class="board">
-  <div class="stage-col"><div class="match-bar" aria-label="جولات المباراة"></div><div class="stage-host"></div></div>
-  <div class="hud">
-   <section class="turn-box"><div class="phase">…</div><div class="timer"><i></i></div><div class="notice"></div></section>
-   <section class="gun-box"><h3>البندقية</h3><div class="loaded"></div><div class="peek" hidden></div></section>
-   <section class="act-box"><div class="act-hint"></div><div class="target-picker"></div></section>
-   <section class="items-box"><h3>أدواتك <small class="cap"></small></h3><div class="items"></div></section>
-   <section class="log-box"><h3>ما حدث</h3><ol class="log" aria-label="سجل المجلس"></ol></section>
+ <div class="frame">
+  <div class="stage-host"></div>
+  <div class="hudx topbar">
+   <div class="side"><button class="ibtn" data-action="menu" aria-label="القائمة">☰</button><span class="status-dot"></span><span class="match-bar" aria-label="جولات المباراة"></span></div>
+   <div class="turn chip"><div class="phase">…</div><div class="timer"><i></i></div><div class="notice"></div></div>
+  </div>
+  <div class="hudx gun-dock chip" aria-label="البندقية"><div class="loaded"></div><div class="peek" hidden></div></div>
+  <div class="hudx items-dock" aria-label="أدواتك"><div class="items"></div></div>
+  <div class="hudx pick-pop chip" hidden><span class="act-hint"></span><span class="target-picker"></span></div>
+  <div class="hudx menu-pop chip" hidden>
+   <div class="row"><b class="room-label"></b><span class="conn-text">غير متصل</span></div>
+   <div class="row"><button class="ghost" data-action="invite">📨 نسخ الدعوة</button><button class="ghost toggle" data-action="sound" aria-pressed="true">🔊 الصوت</button><button class="ghost toggle" data-action="calm" aria-pressed="false">حركة أقل</button><button class="ghost" data-action="leave">🚪 خروج</button></div>
+   <ol class="log" aria-label="ما حدث"></ol>
   </div>
  </div>
  <div class="overlay" hidden><div class="overlay-card"><div class="spinner" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 4 38 22 56 16 44 32 56 48 38 42 32 60 26 42 8 48 20 32 8 16 26 22Z" fill="none" stroke="#e8b84a" stroke-width="3"/></svg></div><p class="overlay-text"></p><button class="primary small" data-action="retry" hidden>حاول مجددًا</button></div></div>
@@ -84,7 +82,7 @@ async function boot(){
 </section></main>`
 
  const $=<T extends HTMLElement>(q:string)=>root.querySelector<T>(q)!
- const title=$('[data-view="title"]'),view=$('[data-view="game"]'),phase=$('.phase'),notice=$('.notice'),toast=$('.toast'),overlay=$('.overlay'),timer=$('.timer'),logEl=$('.log'),picker=$('.target-picker'),itemsEl=$('.items'),peekEl=$('.peek'),matchBar=$('.match-bar'),loadedEl=$('.loaded')
+ const title=$('[data-view="title"]'),view=$('[data-view="game"]'),phase=$('.phase'),notice=$('.notice'),toast=$('.toast'),overlay=$('.overlay'),timer=$('.timer'),logEl=$('.log'),picker=$('.target-picker'),itemsEl=$('.items'),peekEl=$('.peek'),matchBar=$('.match-bar'),loadedEl=$('.loaded'),pickPop=$('.pick-pop'),menuPop=$('.menu-pop')
  const stage=new Stage($('.stage-host'),seat=>onSeat(seat))
  stage.setActive(false)
  // Title backdrop: a demo camp with all six characters, the turn passing around the fire.
@@ -154,7 +152,7 @@ async function boot(){
    }
    lastPhase=s.phase;lastRound=s.round
   }else if(s.phase==='live'&&prev&&s.chamber.total>prev.chamber.total){sfx('load');peek='';pushLog(`أُعيد الحشو: ${s.chamber.live} حيّة و${s.chamber.blank} فارغة`)}
-  if(s.phase==='live'&&s.turn!==lastTurn&&s.turn===role){window.setTimeout(()=>sfx('rack'),200);say('دورك — البندقية بيدك')}
+  if(s.phase==='live'&&s.turn!==lastTurn&&s.turn===role){window.setTimeout(()=>sfx('rack'),200)}
   if(s.turn!==lastTurn){pick='';stealFrom=''}
   lastTurn=s.turn
   if(s.phase!=='live'){pick='';stealFrom='';peek=''}
@@ -195,51 +193,52 @@ async function boot(){
  function seatLabels(s:RoomState):Partial<Record<Seat,string>>{
   const out:Partial<Record<Seat,string>>={}
   if(s.phase!=='live'||role==='spectator'||s.turn!==role||stealFrom)return out
-  if(pick==='rope'){for(const x of targets(s,'rope'))out[x]='🪢 اربطه';return out}
-  if(pick==='steal'){for(const x of targets(s,'steal'))out[x]='🖐️ اسرق منه';return out}
-  for(const x of targets(s,'shoot'))out[x]='🎯 أطلق'
-  out[role]='🎯 أطلق على نفسك'
+  if(pick==='rope'){for(const x of targets(s,'rope'))out[x]='🪢';return out}
+  if(pick==='steal'){for(const x of targets(s,'steal'))out[x]='🖐️';return out}
+  for(const x of targets(s,'shoot'))out[x]='🎯'
+  out[role]='🎯'
   return out
  }
 
  function renderMatch(s:RoomState){
   const m=s.match,cur=s.phase==='waiting'?0:s.round
   matchBar.innerHTML=Array.from({length:m.of},(_,i)=>{const n=i+1,w=m.winners[i],done=i<m.winners.length,now=n===cur&&!done
-   return `<div class="rd ${done?'done':''} ${now?'now':''}" style="${w?`--c:${CHARACTERS[w].color}`:''}"><b>الجولة ${n}</b><span>${done?(w?`🏆 ${esc(nameOf(w))}`:'بلا فائز'):now?'تُلعب الآن':'لم تبدأ'}</span></div>`}).join('')
+   return `<span class="rd ${done?'done':''} ${now?'now':''}" style="${w?`--c:${CHARACTERS[w].color}`:''}" title="الجولة ${n}${done?(w?` — فاز ${esc(nameOf(w))}`:' — بلا فائز'):now?' — تُلعب الآن':''}">${done&&w?'🏆':n}</span>`}).join('')
  }
 
  function render(s:RoomState){
   const live=s.phase==='live',mine=live&&s.turn===role,me=role==='spectator'?null:s.seats[role]
   const connected=SEATS.filter(x=>s.seats[x].connected).length
   renderMatch(s)
-  phase.textContent=s.phase==='waiting'?`بانتظار اللاعبين (${connected}/6)`:s.phase==='countdown'?`الجولة ${s.round} من ${s.match.of}`:s.phase==='ended'?(s.match.over?'انتهت المباراة':`انتهت الجولة ${s.round}`):mine?'دورك — البندقية بيدك':`دور ${nameOf(s.turn)}`
+  phase.textContent=s.phase==='waiting'?`بانتظار اللاعبين (${connected}/6)`:s.phase==='countdown'?`الجولة ${s.round} من ${s.match.of}`:s.phase==='ended'?(s.match.over?'انتهت المباراة':`انتهت الجولة ${s.round}`):mine?'دورك — اضغط 🎯':`دور ${nameOf(s.turn)}`
   phase.className=`phase ${mine?'mine':live?'other':s.phase}`
   notice.textContent=s.phase==='waiting'?(connected<2?'شارك رابط الدعوة — تحتاج لاعبًا آخر على الأقل.':'سيبدأ اللعب قريبًا.'):s.notice||(mine?'أطلق على نفسك أو على لاعب، أو استخدم أداة.':role==='spectator'?'أنت تشاهد هذه الطاولة.':'انتظر دورك وراقب الطاولة.')
   // Rifle panel: what was loaded (announced) and how many bullets are left.
-  loadedEl.innerHTML=live?`<div class="row"><span class="lbl">حُشيت</span><span class="shells">${shells(s.chamber.live,'live')}${shells(s.chamber.blank,'blank')}</span></div><div class="row counts"><span><b class="bad">${s.chamber.live}</b> حيّة</span><span><b class="ok">${s.chamber.blank}</b> فارغة</span><span>الباقي في البندقية: <b>${s.chamber.total}</b></span></div>`:'<div class="row muted">تُحشى البندقية عند بداية الجولة.</div>'
+  loadedEl.innerHTML=live?`<span class="shells" title="${s.chamber.live} حيّة و${s.chamber.blank} فارغة">${shells(s.chamber.live,'live')}${shells(s.chamber.blank,'blank')}</span><span><b>${s.chamber.total}</b> <span class="muted">باقية</span></span>`:'<span class="muted">🔫 تُحشى مع الجولة</span>'
   peekEl.hidden=!peek||!live
   peekEl.className=`peek ${peek}`
-  peekEl.textContent=peek?`🔭 أنت تعرف: الطلقة القادمة ${peek==='live'?'حيّة':'فارغة'}`:''
+  peekEl.textContent=peek?`🔭 القادمة ${peek==='live'?'حيّة':'فارغة'}`:''
   $('.room-label').textContent=room
   if(!mine){pick='';stealFrom=''}
   const labels=seatLabels(s)
   const t=(Object.keys(labels) as Seat[]).filter(x=>x!==role)
   const hint=$('.act-hint')
   hint.className=`act-hint ${mine?'mine':''}`
-  hint.textContent=!live?'':!mine?(me?.alive?'انتظر دورك…':'تتابع الجولة.'):pick==='rope'?'🪢 اضغط «اربطه» فوق اللاعب في الشاشة':pick==='steal'&&!stealFrom?'🖐️ اضغط «اسرق منه» فوق اللاعب في الشاشة':pick==='steal'?'':'🎯 اضغط «أطلق» فوق لاعب في الشاشة، أو «أطلق على نفسك» فوقك'
+  hint.textContent=pick==='rope'?'🪢 اختر من تربطه':pick==='steal'&&!stealFrom?'🖐️ اختر من تسرق منه':''
+  pickPop.hidden=!mine||!pick
   if(pick==='steal'&&stealFrom){
    const victim=s.seats[stealFrom]
    picker.innerHTML=`<span>ماذا تسرق من ${esc(nameOf(stealFrom))}؟</span>${victim.items.map(i=>`<button data-steal="${i}" ${i==='steal'?'disabled':''}>${ITEM_ICON[i]} ${ITEM_NAME[i]}</button>`).join('')}<button class="cancel" data-action="cancel">إلغاء</button>`
   }else picker.innerHTML=pick?`<button class="cancel" data-action="cancel">إلغاء ${pick==='rope'?'الحبل':'السرقة'}</button>`:''
   const items=live&&me?.alive?me.items:[]
-  $('.cap').textContent=live&&me?`${items.length} من ${s.match.cap}`:''
-  itemsEl.innerHTML=items.length?items.map((i,k)=>{const off=!mine||(i==='dallah'&&me!.lives>=s.match.max_lives)||(i==='double'&&me!.double)||((i==='rope'||i==='steal')&&!targets(s,i).length);return `<button data-item="${i}" data-k="${k}" ${off?'disabled':''} class="${pick===i?'active':''}"><em>${ITEM_ICON[i]}</em>${ITEM_NAME[i]}<small>${ITEM_HINT[i]}</small></button>`}).join(''):`<p class="muted">${live?'لا أدوات معك الآن.':'تُوزَّع الأدوات مع كل حشوة.'}</p>`
+  itemsEl.innerHTML=items.length?items.map((i,k)=>{const off=!mine||(i==='dallah'&&me!.lives>=s.match.max_lives)||(i==='double'&&me!.double)||((i==='rope'||i==='steal')&&!targets(s,i).length);return `<button data-item="${i}" data-k="${k}" title="${ITEM_NAME[i]}: ${ITEM_HINT[i]}" ${off?'disabled':''} class="${pick===i?'active':''}"><em>${ITEM_ICON[i]}</em><small>${ITEM_NAME[i]}</small></button>`}).join(''):''
   stage.update(s,role,t,labels)
-  $('.hud').classList.toggle('picking',pick==='steal'&&Boolean(stealFrom))
   view.classList.toggle('turn-mine',mine)
   showConn()
  }
 
+ /** Android: go fullscreen and lock landscape. iPhone can't lock, so CSS turns the game sideways instead. */
+ function landscape(){try{const el=document.documentElement as HTMLElement&{webkitRequestFullscreen?:()=>void};const p=el.requestFullscreen?el.requestFullscreen():el.webkitRequestFullscreen?.();Promise.resolve(p).then(()=>(screen.orientation as ScreenOrientation&{lock?:(o:string)=>Promise<void>}).lock?.('landscape')).catch(()=>{})}catch{/* not supported */}}
  function send(action:ClientAction){if(!connection.send(JSON.stringify(action)))say('الاتصال غير جاهز بعد')}
  function connect(){lastSeq=-1;state=null;lastPhase='';lastTurn='';lastRound=0;log=[];peek='';logEl.innerHTML='';stage.hideStamp();const name=cleanName($<HTMLInputElement>('.name-input').value);connection.discover(bootstrapUrl(location.href),BUILD,e=>`${socketUrl(e,room,loadResume(room,e))}${name?`&name=${encodeURIComponent(name)}`:''}`);showConn()}
 
@@ -254,7 +253,8 @@ async function boot(){
    pick='';stealFrom='';send({type:'action',action:'item',item});return
   }
   const a=el.dataset.action
-  if(a==='play'){const input=$<HTMLInputElement>('.room-input');room=sanitizeRoom(input.value)||generateRoom();input.value=room;writeRoom(room);writeText(NAME_KEY,cleanName($<HTMLInputElement>('.name-input').value));view.classList.add('is-live');title.classList.remove('is-active');showGame(true);$('.room-label').textContent=room;connect()}
+  if(a==='play'){const input=$<HTMLInputElement>('.room-input');room=sanitizeRoom(input.value)||generateRoom();input.value=room;writeRoom(room);writeText(NAME_KEY,cleanName($<HTMLInputElement>('.name-input').value));view.classList.add('is-live');title.classList.remove('is-active');showGame(true);menuPop.hidden=true;$('.room-label').textContent=room;landscape();connect()}
+  else if(a==='menu'){menuPop.hidden=!menuPop.hidden}
   else if(a==='retry')connect()
   else if(a==='invite'){const url=inviteUrl(room);const done=()=>say('تم نسخ رابط الدعوة');if(navigator.share&&matchMedia('(pointer: coarse)').matches)navigator.share({title:GAME,text:`انضم إلى مجلسي في ${GAME} — الرمز ${room}`,url}).catch(()=>{});else navigator.clipboard?.writeText(url).then(done,()=>say(url))}
   else if(a==='sound'){prefs.sound=!prefs.sound;applyPrefs()}

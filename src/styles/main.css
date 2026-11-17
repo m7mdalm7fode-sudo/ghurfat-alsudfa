@@ -62,97 +62,6 @@ button{cursor:pointer}
 .hero-char figcaption b{display:block;font-family:var(--display);font-size:16px;color:var(--c)}
 .hero-char figcaption small{display:block;font-size:11px;color:var(--muted);line-height:1.5}
 
-/* ---------- Game view ---------- */
-.game-view{padding:14px max(14px,env(safe-area-inset-right)) 20px max(14px,env(safe-area-inset-left))}
-.game-view header{display:flex;align-items:center;gap:10px;margin:0 auto 10px}
-.conn{margin-inline-end:auto;display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--muted)}
-.status-dot{width:10px;height:10px;flex:none;background:var(--gold);box-shadow:0 0 0 2px #000;animation:blink 1s steps(2) infinite}
-.status-dot.on{background:#5fe08e;animation:none}
-.status-dot.off{background:#ef566a;animation:none}
-.room-label{letter-spacing:.14em;color:var(--ink);direction:ltr;background:var(--panel2);box-shadow:0 0 0 2px var(--edge);padding:3px 8px}
-.ghost{background:var(--panel2);color:var(--ink);min-height:40px;padding:0 12px;font-size:13px}
-.ghost.toggle[aria-pressed="true"]{background:#1f3a35;color:#c9f6ee}
-.board{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:22px;margin:0 auto;align-items:start;padding:6px}
-.stage-col{min-width:0;display:grid;gap:10px;justify-items:center}
-.stage-host{min-width:0;width:100%;display:grid;justify-items:center}
-.stage-host .stage{width:min(100%,calc((100dvh - 96px) * 1.6))}
-.hud{background:var(--panel);padding:14px;display:grid;gap:12px;align-content:start}
-.hud>section{display:grid;gap:8px;padding:10px;background:#140d09;box-shadow:0 0 0 2px var(--edge)}
-.hud h3{margin:0;font-size:13px;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
-.hud h3 small{color:var(--muted);font-weight:400}
-.muted{color:var(--muted);font-size:13px;margin:0}
-/* Match bar: three round slots, clearly apart from the rifle panel. */
-.match-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:inherit}
-.match-bar .rd{display:grid;gap:2px;padding:6px 10px;background:var(--panel);box-shadow:0 0 0 2px var(--edge),0 0 0 4px #000;text-align:center}
-.match-bar .rd b{font-size:13px;color:var(--muted)}
-.match-bar .rd span{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.match-bar .rd.now{box-shadow:0 0 0 2px var(--gold),0 0 0 4px #000}
-.match-bar .rd.now b{color:var(--gold)}
-.match-bar .rd.done{border-bottom:4px solid var(--c,var(--edge))}
-.match-bar .rd.done span{color:var(--c,var(--ink));font-weight:800}
-.loaded{display:grid;gap:8px}
-.loaded .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.loaded .lbl{font-size:13px;color:var(--muted)}
-.loaded .shells{display:flex;flex-wrap:wrap;gap:6px}
-.loaded .shell{width:10px;height:22px}
-.loaded .counts{font-size:14px;color:var(--muted)}
-.loaded .counts b{font-size:18px;color:var(--ink)}
-.phase-row{display:grid;gap:8px}
-.phase{font-size:clamp(22px,2.6vw,30px);font-weight:800;line-height:1.35}
-.phase.mine{color:var(--gold);text-shadow:3px 3px 0 #3a1a0e;animation:pulse 1.2s steps(2) infinite}
-.timer{height:8px;background:#000;box-shadow:0 0 0 2px var(--edge);opacity:0}
-.timer.on{opacity:1}
-.timer i{display:block;height:100%;width:calc(var(--p,1)*100%);background:var(--turq)}
-.timer.low i{background:var(--ember)}
-.notice{min-height:44px;color:#e2cdb0;line-height:1.7;font-size:14px}
-.chamber{display:flex;flex-wrap:wrap;gap:10px}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:#120b08;box-shadow:0 0 0 2px var(--edge);font-size:13px;color:var(--muted)}
-.pill svg{width:16px;height:16px}
-.pill b{font-size:20px;color:var(--ink)}
-.pill.blank b{color:#c9c2b8}
-.pill.live b{color:#ff6a5a}
-.pill.left b{color:var(--gold)}
-.shell{display:inline-block;width:8px;height:16px;background:linear-gradient(#c8a24a 0 70%,#3a2a22 70%);box-shadow:0 0 0 2px #000;vertical-align:middle}
-.shell.live{background:linear-gradient(#d23c3c 0 30%,#c8a24a 30% 72%,#3a2a22 72%)}
-.shell.blank{background:linear-gradient(#8e98a6 0 30%,#c8a24a 30% 72%,#3a2a22 72%)}
-.peek{padding:8px 12px;background:#120b08;box-shadow:0 0 0 2px var(--edge);font-weight:800}
-.peek.live{color:#ff6a5a;box-shadow:0 0 0 2px #b8343e}
-.peek.blank{color:#c9c2b8}
-.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px;padding:3px}
-.items:empty{display:none}
-.items>span{width:100%;font-size:13px;color:var(--muted)}
-.items button{display:grid;justify-items:center;gap:2px;min-width:74px;min-height:64px;padding:6px 8px;background:var(--panel2);color:var(--ink);border:0;border-radius:0;font-weight:800;font-size:13px;box-shadow:inset -3px -3px 0 rgba(0,0,0,.35),inset 3px 3px 0 rgba(255,255,255,.12),0 0 0 3px #000}
-.items button em{font-style:normal;font-size:22px;line-height:1}
-.items button small{font-size:10px;color:var(--muted);font-weight:400}
-.items button:disabled{opacity:.4;cursor:not-allowed}
-.items button.active{outline:3px solid #fff;outline-offset:2px}
-.target-picker button em{font-style:normal;color:#ff5a6a}
-.target-picker button[data-steal]{border-bottom-color:var(--gold)}
-.pill.round b{color:var(--gold);font-size:16px}
-.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:3px}
-.actions button{min-height:58px;padding:6px;font-size:14px;color:#2a1408;background:var(--gold)}
-.actions .action-shoot{background:#b8343e;color:#fff}
-.actions button.active{outline:3px solid #fff;outline-offset:3px}
-.actions button:disabled{opacity:.3;filter:grayscale(.9);cursor:not-allowed}
-.target-picker{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:3px}
-.target-picker:empty{display:none}
-.target-picker span{width:100%;font-size:13px;color:var(--muted)}
-.target-picker button{min-height:44px;background:var(--panel2);color:var(--ink);padding:0 14px;border-bottom:4px solid var(--c)}
-.target-picker .cancel{color:var(--muted);border-bottom-color:transparent}
-.log{list-style:none;margin:0;padding:10px 0 0;border-top:2px dashed var(--edge);display:grid;gap:4px;font-size:13px;color:var(--muted)}
-.log:empty{display:none}
-.log li:first-child{color:var(--ink)}
-.toast{position:absolute;bottom:22px;left:50%;transform:translate(-50%,20px);opacity:0;transition:.2s;background:var(--panel2);box-shadow:0 0 0 3px var(--edge),0 0 0 6px #000;padding:10px 18px;color:var(--ink);font-size:14px;pointer-events:none;max-width:calc(100% - 32px);z-index:30}
-.toast.on{opacity:1;transform:translate(-50%,0)}
-.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(6,4,3,.78);z-index:20;padding:16px}
-.overlay[hidden]{display:none}
-.overlay-card{background:var(--panel);padding:26px 22px;text-align:center;max-width:360px;display:grid;gap:12px;justify-items:center}
-.overlay-text{margin:0;line-height:1.8}
-.overlay.error .spinner{animation:none;opacity:.5}
-.spinner{width:56px;height:56px;animation:spin 2s steps(8) infinite}
-.spinner svg{width:100%;height:100%}
-.fatal{display:grid;place-items:center;height:100%;padding:30px;text-align:center;color:#ff9f9f}
-
 /* ---------- Stage (pixel camp) ---------- */
 .stage{position:relative;width:100%;aspect-ratio:16/10;overflow:hidden;background:#05040a;container-type:inline-size;margin:6px auto}
 .world{position:absolute;inset:0}
@@ -199,19 +108,6 @@ button{cursor:pointer}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 .calm *,.calm *::before,.calm *::after{animation-duration:.001ms!important;animation-iteration-count:1!important}
-
-@media (max-width:1000px){
- .board{grid-template-columns:1fr;gap:16px}
- .stage-host .stage{width:min(100%,calc((100dvh - 120px) * 1.6))}
-}
-/* Phones: zoom the camera onto the camp (crop the empty sky and edges) so characters are bigger. */
-@media (max-width:700px){
- /* Only trim empty sky at the top; never crop the sides, or edge seats get cut off. */
- .stage-host .stage{aspect-ratio:320/194;width:100%}
- .stage-host .world{left:0;width:100%;top:-3.09%;height:103.09%}
- .game-view{padding-left:8px;padding-right:8px}
- .board{padding:4px}
-}
 @media (max-width:900px){
  .title-view{grid-template-columns:1fr;padding:22px 16px 32px;align-content:start}
  .hero-side{order:-1}
@@ -225,94 +121,103 @@ button{cursor:pointer}
  .title-view h1{font-size:52px}
  .tagline{font-size:15px}
  .hero-lineup{display:none}
- .game-view header{gap:6px}
- .game-view header .ghost{min-height:40px;padding:0 7px;font-size:11px;white-space:nowrap}
- .room-label{padding:3px 5px;letter-spacing:.06em;font-size:12px}
- .conn-text{display:none}
- .hud{padding:12px;gap:10px}
- .actions button{min-height:54px;font-size:13px}
- .seat .plate{padding:0 3px;transform:translate(-50%,-10px)}
- .seat.front .plate{transform:translate(-50%,0)}
- .seat .plate b{font-size:9px;max-width:20cqw}
- .seat .plate small{display:none}
- .seat .hp{font-size:12px}
- .match-bar .rd{padding:4px 6px}
- .match-bar .rd span{font-size:11px}
- .face.front b{font-size:12px}
 }
 
-/* ---------- Action buttons drawn above players on the scene ---------- */
+/* ================= Game view: landscape, everything inside the scene ================= */
+.game-view.is-live{display:grid;place-items:center;overflow:hidden;padding:0;background:#000}
+/* The frame keeps the scene's aspect and is as large as the screen allows. */
+.frame{position:relative;aspect-ratio:320/194;container-type:inline-size;
+ width:min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)),calc(100vh * 320 / 194));
+ width:min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)),calc(100dvh * 320 / 194))}
+.frame .stage-host{position:absolute;inset:0}
+.frame .stage{width:100%;height:100%;aspect-ratio:auto;margin:0;box-shadow:none}
+.frame .world{top:-3.09%;height:103.09%}
+.hudx{position:absolute;z-index:500;pointer-events:none}
+.hudx>*{pointer-events:auto}
+.chip{background:rgba(10,6,4,.82);box-shadow:0 0 0 2px #000,inset 0 0 0 1px var(--edge-hi);color:var(--ink)}
+.ibtn{border:0;border-radius:0;display:grid;place-items:center;width:max(32px,5.4cqw);height:max(32px,5.4cqw);padding:0;font-size:max(16px,2.6cqw);line-height:1;color:var(--ink);background:rgba(36,23,15,.92);box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.15),0 0 0 2px #000}
+.ibtn:active{transform:translateY(1px)}
+
+/* Top bar: menu (start), turn in the middle, rounds (end). */
+.topbar{top:max(6px,1cqw);left:max(6px,1cqw);right:max(6px,1cqw);display:flex;align-items:flex-start;justify-content:space-between;gap:1cqw;pointer-events:none}
+.topbar .side{display:flex;align-items:center;gap:max(5px,.8cqw);pointer-events:auto}
+.status-dot{width:max(8px,1.1cqw);height:max(8px,1.1cqw);flex:none;background:var(--gold);box-shadow:0 0 0 2px #000;animation:blink 1s steps(2) infinite}
+.status-dot.on{background:#5fe08e;animation:none}
+.status-dot.off{background:#ef566a;animation:none}
+.turn{flex:0 1 23cqw;min-width:0;display:grid;justify-items:start;gap:.3cqw;padding:.5cqw 1cqw;text-align:start;pointer-events:none}
+.phase{font-size:max(13px,2cqw);font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.phase.mine{color:var(--gold);animation:pulse 1.2s steps(2) infinite}
+.timer{width:100%;height:max(3px,.5cqw);background:#000;opacity:0}
+.timer.on{opacity:1}
+.timer i{display:block;height:100%;width:calc(var(--p,1)*100%);background:var(--turq)}
+.timer.low i{background:var(--ember)}
+.notice{font-size:max(10px,1.25cqw);color:#e2cdb0;line-height:1.35;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.notice:empty{display:none}
+.match-bar{display:flex;gap:max(4px,.6cqw)}
+.match-bar .rd{display:grid;place-items:center;min-width:max(26px,4.4cqw);height:max(26px,4.4cqw);padding:0 .4cqw;font-size:max(11px,1.5cqw);font-weight:800;color:var(--muted);background:rgba(10,6,4,.82);box-shadow:0 0 0 2px #000}
+.match-bar .rd.now{color:#2a1408;background:var(--gold)}
+.match-bar .rd.done{color:#fff;background:var(--c,#3a2a22)}
+
+/* Bottom corners: rifle (left) and items (right, the RTL start side). */
+.gun-dock{left:max(6px,1cqw);bottom:max(6px,1cqw);display:grid;gap:.5cqw;justify-items:start;padding:.6cqw .9cqw}
+.loaded{display:flex;align-items:center;gap:.8cqw;font-size:max(11px,1.5cqw);white-space:nowrap}
+.loaded b{font-size:max(13px,2cqw)}
+.loaded .muted{color:var(--muted)}
+.shells{display:flex;gap:max(2px,.35cqw)}
+.shell{display:inline-block;width:max(5px,.8cqw);height:max(12px,1.9cqw);background:linear-gradient(#c8a24a 0 70%,#3a2a22 70%);box-shadow:0 0 0 1px #000;vertical-align:middle}
+.shell.live{background:linear-gradient(#d23c3c 0 30%,#c8a24a 30% 72%,#3a2a22 72%)}
+.shell.blank{background:linear-gradient(#8e98a6 0 30%,#c8a24a 30% 72%,#3a2a22 72%)}
+.peek{font-size:max(11px,1.4cqw);font-weight:800}
+.peek[hidden]{display:none}
+.peek.live{color:#ff6a5a}.peek.blank{color:#c9c2b8}
+.items-dock{right:max(6px,1cqw);bottom:max(6px,1cqw);max-width:36cqw}
+.items{display:flex;flex-wrap:wrap-reverse;justify-content:flex-start;gap:max(5px,.7cqw)}
+.items:empty{display:none}
+.items button{position:relative;width:max(36px,5.8cqw);height:max(40px,6.4cqw);display:grid;place-items:center;align-content:center;gap:1px;padding:0;border:0;border-radius:0;color:var(--ink);background:rgba(36,23,15,.92);box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.12),0 0 0 2px #000}
+.items button em{font-style:normal;font-size:max(17px,2.7cqw);line-height:1}
+.items button small{font-size:max(8px,1cqw);color:var(--muted);line-height:1;white-space:nowrap}
+.items button:disabled{opacity:.38}
+.items button.active{outline:2px solid #fff;outline-offset:2px}
+
+/* Steal / rope picking bar under the turn box. */
+.pick-pop{top:calc(max(6px,1cqw) + max(64px,11cqw));left:max(6px,1cqw);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:max(5px,.7cqw);padding:.6cqw 1cqw;max-width:70cqw;font-size:max(11px,1.5cqw)}
+.pick-pop[hidden]{display:none}
+.pick-pop button{border:0;border-radius:0;min-height:max(30px,4.6cqw);padding:0 1cqw;font-size:max(12px,1.6cqw);font-weight:800;color:var(--ink);background:rgba(36,23,15,.95);box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),0 0 0 2px #000}
+.pick-pop .cancel{color:var(--muted)}
+
+/* Menu: room code, invite, sound, motion, exit and the event log. */
+.menu-pop{top:calc(max(6px,1cqw) + max(38px,6.4cqw));right:max(6px,1cqw);display:grid;gap:max(6px,.8cqw);padding:1cqw;width:max(220px,30cqw);max-height:calc(100% - max(52px,8cqw));overflow:auto;font-size:max(12px,1.5cqw)}
+.menu-pop[hidden]{display:none}
+.menu-pop .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.room-label{letter-spacing:.14em;direction:ltr;padding:2px 8px;background:#120b08;box-shadow:0 0 0 2px var(--edge)}
+.conn-text{color:var(--muted)}
+.ghost{border:0;border-radius:0;font-weight:800;min-height:34px;padding:0 10px;font-size:max(12px,1.4cqw);color:var(--ink);background:var(--panel2);box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.18),0 0 0 2px #000}
+.ghost.toggle[aria-pressed="true"]{background:#1f3a35;color:#c9f6ee}
+.log{list-style:none;margin:0;padding:6px 0 0;border-top:2px dashed var(--edge);display:grid;gap:3px;color:var(--muted)}
+.log li:first-child{color:var(--ink)}
+
+/* Seat action: icon only. */
 .seat .cta{display:none}
 .seat.has-cta{cursor:pointer}
-.seat.has-cta .cta{display:block;margin-top:3px;padding:3px 8px;background:#b8343e;color:#fff;font-weight:800;font-size:max(11px,1.5cqw);white-space:nowrap;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.25),0 0 0 2px #000;animation:pulse 1s steps(2) infinite}
-.seat.me.has-cta .cta{background:var(--gold);color:#2a1408}
-.seat.has-cta .plate{pointer-events:auto;cursor:pointer;background:rgba(10,6,4,.92)}
-/* My own plate sits on my back; during my turn it rises above my head with the button. */
+.seat.has-cta .cta{display:grid;place-items:center;margin-top:2px;width:max(30px,4.6cqw);height:max(28px,4.2cqw);font-size:max(16px,2.5cqw);line-height:1;background:#b8343e;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.25),0 0 0 2px #000;animation:pulse 1s steps(2) infinite}
+.seat.me.has-cta .cta{background:var(--gold)}
+.seat.has-cta .plate{pointer-events:auto;cursor:pointer}
 .seat.front.has-cta .plate{bottom:100%;transform:translate(-50%,-4px)}
-.seat.has-cta:active .cta{transform:translateY(1px)}
-.act-hint{font-size:13px;color:var(--muted);line-height:1.6}
-.act-hint:empty{display:none}
-.act-hint.mine{color:var(--gold);font-weight:800}
-.act-box:has(.act-hint:empty):has(.target-picker:empty){display:none!important}
+.seat .plate{padding:1px 5px}
 
-/* ---------- Phone: the whole game fits on one screen, no scrolling ---------- */
-@media (max-width:700px){
- :root{--px:2px}
- .game-view.is-live{display:flex;flex-direction:column;height:100dvh;overflow:hidden;padding:max(6px,env(safe-area-inset-top)) 8px max(6px,env(safe-area-inset-bottom))}
- .game-view header{flex:none;margin:0 0 6px;gap:4px}
- .game-view header .ghost{min-height:32px;padding:0 6px;font-size:11px}
- .room-label{font-size:11px;padding:2px 4px}
- .board{flex:1;min-height:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:2px}
- .stage-col{flex:none;gap:6px;width:100%}
- .stage-host .stage{width:100%}
- .match-bar{gap:5px}
- .match-bar .rd{display:flex;justify-content:center;gap:4px;padding:3px 4px;box-shadow:0 0 0 2px var(--edge)}
- .match-bar .rd b{font-size:11px}
- .match-bar .rd b::after{content:':'}
- .match-bar .rd span{font-size:11px}
- .match-bar .rd.now{box-shadow:0 0 0 2px var(--gold)}
- .match-bar .rd.done{border-bottom-width:3px}
- .stage{margin:2px auto}
- /* The panel under the scene takes what is left of the screen. */
- .hud{flex:1;min-height:0;overflow-y:auto;padding:8px;gap:6px;box-shadow:0 0 0 2px var(--edge)}
- .hud>section{padding:6px 8px;gap:5px;box-shadow:0 0 0 1px var(--edge)}
- .hud h3{font-size:11px}
- .turn-box .phase{font-size:17px;line-height:1.3}
- .phase.mine{text-shadow:2px 2px 0 #3a1a0e}
- .timer{height:5px}
- .notice{min-height:0;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
- /* Rifle: one line — announced bullets and what is left. */
- .gun-box h3{display:none}
- .loaded{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
- .loaded .row{gap:6px}
- .loaded .lbl{display:none}
- .loaded .shells{gap:3px}
- .loaded .shell{width:7px;height:15px}
- .loaded .counts{font-size:12px;gap:8px}
- .loaded .counts b{font-size:15px}
- .peek{padding:4px 8px;font-size:12px}
- .act-box{padding:6px!important}
- .actions{gap:8px;padding:2px}
- .actions button{min-height:46px;font-size:14px}
- .target-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
- .target-picker:empty{display:none}
- .target-picker span{grid-column:1/-1;font-size:12px}
- .target-picker button{min-height:36px;padding:0 4px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .target-picker button em{font-size:10px}
- /* While choosing a target, hide the items strip and the log so everything still fits. */
- .hud.picking .items-box,.hud.picking .log-box{display:none}
- /* Items: one sideways strip. */
- .items-box h3{display:flex}
- .items{display:flex;overflow-x:auto;gap:8px;padding:3px 3px 5px;scrollbar-width:none}
- .items::-webkit-scrollbar{display:none}
- .items button{flex:none;min-width:62px;min-height:50px;padding:4px 6px;font-size:11px}
- .items button em{font-size:18px}
- .items button small{display:none}
- .items .muted{font-size:12px}
- /* Only the latest event. */
- .log-box{padding:5px 8px!important}
- .log-box h3{display:none}
- .log{border:0;padding:0;font-size:12px}
- .log li:not(:first-child){display:none}
- .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 50px)}
+.toast{position:absolute;top:52%;left:30%;transform:translate(-50%,10px);opacity:0;transition:.2s;background:var(--panel2);box-shadow:0 0 0 2px var(--edge),0 0 0 4px #000;padding:8px 16px;color:var(--ink);font-size:max(12px,1.6cqw);pointer-events:none;max-width:80%;z-index:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(6,4,3,.78);z-index:950;padding:16px}
+.overlay[hidden]{display:none}
+.overlay-card{background:var(--panel);padding:22px 20px;text-align:center;max-width:360px;display:grid;gap:12px;justify-items:center}
+.overlay-text{margin:0;line-height:1.8}
+.overlay.error .spinner{animation:none;opacity:.5}
+.spinner{width:48px;height:48px;animation:spin 2s steps(8) infinite}
+.spinner svg{width:100%;height:100%}
+.fatal{display:grid;place-items:center;height:100%;padding:30px;text-align:center;color:#ff9f9f}
+
+/* Phone held upright: turn the game sideways so it is always played in landscape. */
+@media (orientation:portrait) and (max-width:900px){
+ .game-view.is-live{inset:auto;top:0;left:100%;width:100vh;width:100dvh;height:100vw;transform-origin:0 0;transform:rotate(90deg)}
+ .game-view.is-live .frame{width:min(100vh,calc(100vw * 320 / 194));width:min(100dvh,calc(100vw * 320 / 194))}
 }
