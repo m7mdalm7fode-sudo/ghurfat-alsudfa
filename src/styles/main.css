@@ -206,8 +206,9 @@ button{cursor:pointer}
 }
 /* Phones: zoom the camera onto the camp (crop the empty sky and edges) so characters are bigger. */
 @media (max-width:700px){
- .stage-host .stage{aspect-ratio:252/190;width:100%}
- .stage-host .world{left:-13.49%;width:126.98%;top:-5.26%;height:105.26%}
+ /* Only trim empty sky at the top; never crop the sides, or edge seats get cut off. */
+ .stage-host .stage{aspect-ratio:320/194;width:100%}
+ .stage-host .world{left:0;width:100%;top:-3.09%;height:103.09%}
  .game-view{padding-left:8px;padding-right:8px}
  .board{padding:4px}
 }
