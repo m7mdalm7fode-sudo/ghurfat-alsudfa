@@ -16,7 +16,8 @@ for (let i = 0; i < count; i++) {
     if (m.type === 'welcome') { role = m.role; console.log(`${NAMES[i]} → ${role}`) }
     if (m.type === 'room' && m.phase === 'live' && m.turn === role) {
       const others = Object.entries(m.seats).filter(([s, v]) => s !== role && v.alive && v.connected).map(([s]) => s)
-      const act = Math.random() < .5 || !others.length ? {action: 'self'} : {action: 'challenge', target: others[Math.floor(Math.random() * others.length)]}
+      const me = m.seats[role], item = me.items.find(x => x !== 'dallah' || me.lives < 3)
+      const act = item && Math.random() < .35 ? {action: 'item', item} : Math.random() < .5 || !others.length ? {action: 'self'} : {action: 'shoot', target: others[Math.floor(Math.random() * others.length)]}
       setTimeout(() => ws.readyState === 1 && ws.send(JSON.stringify({type: 'action', ...act})), 1800 + Math.random() * 1500)
     }
   })

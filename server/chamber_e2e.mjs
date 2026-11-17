@@ -5,7 +5,7 @@ import {spawn} from 'node:child_process'
 import {fileURLToPath} from 'node:url'
 import {WebSocket} from 'ws'
 
-const MARKER = 'chamber6-v1'
+const MARKER = 'chamber6-v2'
 const players = Number(process.argv[2] || 2)
 const port = 18000 + Math.floor(Math.random() * 2000)
 const room = `T${players}${Date.now().toString(36).toUpperCase()}`.slice(0, 8)
@@ -28,8 +28,9 @@ function client(i) {
         // Alternate between drawing on self, challenging and peeking, like a real table.
         const others = Object.entries(m.seats).filter(([s, v]) => s !== c.role && v.alive && v.connected).map(([s]) => s)
         const pick = Math.random()
-        const act = pick < .15 ? {action: 'peek'} : pick < .55 || !others.length ? {action: 'self'} : {action: 'challenge', target: others[Math.floor(Math.random() * others.length)]}
-        setTimeout(() => c.ws.readyState === 1 && c.ws.send(JSON.stringify({type: 'action', ...act})), act.action === 'peek' ? 5 : 15)
+        const items = m.seats[c.role].items, item = items[0]
+        const act = item && pick < .3 && !(item === 'dallah' && m.seats[c.role].lives >= 3) ? {action: 'item', item} : pick < .55 || !others.length ? {action: 'self'} : {action: 'shoot', target: others[Math.floor(Math.random() * others.length)]}
+        setTimeout(() => c.ws.readyState === 1 && c.ws.send(JSON.stringify({type: 'action', ...act})), act.action === 'item' ? 5 : 15)
       }
     }
   })
@@ -53,7 +54,7 @@ try {
   for (const e of ends) assert.deepEqual([...new Set(e)], [...new Set(ends[0])], 'every client sees the same winners')
   const results = cs[0].msgs.filter(m => m.type === 'result')
   const scores = Object.fromEntries(Object.entries(cs.at(-1).last.seats).map(([s, v]) => [s, v.score]))
-  console.log(JSON.stringify({result: 'PASS', players, room, rounds, draws: results.length, dangers: results.filter(r => r.kind === 'danger').length, scores}))
+  console.log(JSON.stringify({result: 'PASS', players, room, rounds, draws: results.length, lives: results.filter(r => r.kind === 'live').length, items: cs[0].msgs.filter(m => m.type === 'item').length, scores}))
   for (const c of cs) c.ws.close()
 } catch (e) {
   console.error(JSON.stringify({result: 'FAIL', players, error: e.stack || String(e)}))

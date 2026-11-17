@@ -64,7 +64,7 @@ button{cursor:pointer}
 
 /* ---------- Game view ---------- */
 .game-view{padding:14px max(14px,env(safe-area-inset-right)) 20px max(14px,env(safe-area-inset-left))}
-.game-view header{display:flex;align-items:center;gap:10px;max-width:1280px;margin:0 auto 14px}
+.game-view header{display:flex;align-items:center;gap:10px;margin:0 auto 10px}
 .conn{margin-inline-end:auto;display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--muted)}
 .status-dot{width:10px;height:10px;flex:none;background:var(--gold);box-shadow:0 0 0 2px #000;animation:blink 1s steps(2) infinite}
 .status-dot.on{background:#5fe08e;animation:none}
@@ -72,7 +72,9 @@ button{cursor:pointer}
 .room-label{letter-spacing:.14em;color:var(--ink);direction:ltr;background:var(--panel2);box-shadow:0 0 0 2px var(--edge);padding:3px 8px}
 .ghost{background:var(--panel2);color:var(--ink);min-height:40px;padding:0 12px;font-size:13px}
 .ghost.toggle[aria-pressed="true"]{background:#1f3a35;color:#c9f6ee}
-.board{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;max-width:1280px;margin:0 auto;align-items:start;padding:6px}
+.board{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:22px;margin:0 auto;align-items:start;padding:6px}
+.stage-host{min-width:0}
+.stage-host .stage{width:min(100%,calc((100dvh - 96px) * 1.6))}
 .hud{background:var(--panel);padding:16px;display:grid;gap:12px}
 .phase-row{display:grid;gap:8px}
 .phase{font-size:clamp(22px,2.6vw,30px);font-weight:800;line-height:1.35}
@@ -86,13 +88,26 @@ button{cursor:pointer}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:#120b08;box-shadow:0 0 0 2px var(--edge);font-size:13px;color:var(--muted)}
 .pill svg{width:16px;height:16px}
 .pill b{font-size:20px;color:var(--ink)}
-.pill.safe svg{fill:var(--turq)}.pill.safe b{color:var(--turq)}
-.pill.danger svg{fill:#ff6a5a}.pill.danger b{color:#ff6a5a}
+.pill.blank b{color:#c9c2b8}
+.pill.live b{color:#ff6a5a}
+.pill.left b{color:var(--gold)}
+.shell{display:inline-block;width:8px;height:16px;background:linear-gradient(#c8a24a 0 70%,#3a2a22 70%);box-shadow:0 0 0 2px #000;vertical-align:middle}
+.shell.live{background:linear-gradient(#d23c3c 0 30%,#c8a24a 30% 72%,#3a2a22 72%)}
+.shell.blank{background:linear-gradient(#8e98a6 0 30%,#c8a24a 30% 72%,#3a2a22 72%)}
+.peek{padding:8px 12px;background:#120b08;box-shadow:0 0 0 2px var(--edge);font-weight:800}
+.peek.live{color:#ff6a5a;box-shadow:0 0 0 2px #b8343e}
+.peek.blank{color:#c9c2b8}
+.items{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;padding:3px}
+.items:empty{display:none}
+.items>span{width:100%;font-size:13px;color:var(--muted)}
+.items button{display:grid;justify-items:center;gap:2px;min-width:74px;min-height:64px;padding:6px 8px;background:var(--panel2);color:var(--ink);border:0;border-radius:0;font-weight:800;font-size:13px;box-shadow:inset -3px -3px 0 rgba(0,0,0,.35),inset 3px 3px 0 rgba(255,255,255,.12),0 0 0 3px #000}
+.items button em{font-style:normal;font-size:22px;line-height:1}
+.items button small{font-size:10px;color:var(--muted);font-weight:400}
+.items button:disabled{opacity:.4;cursor:not-allowed}
 .pill.round b{color:var(--gold);font-size:16px}
-.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:3px}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:3px}
 .actions button{min-height:58px;padding:6px;font-size:14px;color:#2a1408;background:var(--gold)}
-.actions .action-challenge{background:#b8343e;color:#fff}
-.actions .action-peek{background:#2f9e8f;color:#04201b}
+.actions .action-shoot{background:#b8343e;color:#fff}
 .actions button.active{outline:3px solid #fff;outline-offset:3px}
 .actions button:disabled{opacity:.3;filter:grayscale(.9);cursor:not-allowed}
 .target-picker{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:3px}
@@ -116,6 +131,7 @@ button{cursor:pointer}
 
 /* ---------- Stage (pixel camp) ---------- */
 .stage{position:relative;width:100%;aspect-ratio:16/10;overflow:hidden;background:#05040a;container-type:inline-size;margin:6px auto}
+.world{position:absolute;inset:0}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
 .seats{position:absolute;inset:0}
 .seat{position:absolute;border:0;background:none;padding:0;color:inherit;cursor:default}
@@ -139,10 +155,10 @@ button{cursor:pointer}
 .face{position:absolute;inset:0;backface-visibility:hidden;display:grid;place-items:center;align-content:center;gap:.4cqw;box-shadow:0 0 0 .5cqw var(--gold),0 0 0 1cqw #000;image-rendering:pixelated}
 .face.back{background:repeating-linear-gradient(45deg,#3a2160 0 .8cqw,#2a1748 .8cqw 1.6cqw)}
 .face.front{transform:rotateY(180deg)}
-.face .ico{font-style:normal;font-size:5cqw;line-height:1;color:#fff3e0}
+.face .ico{font-style:normal;width:2.4cqw;height:6cqw;box-shadow:0 0 0 .4cqw #000}
 .face.front b{font-family:var(--display);font-size:2.2cqw;color:#fff3e0}
-.face.front.safe{background:#2f9e8f}
-.face.front.danger{background:#b8343e}
+.face.front.blank{background:#4a5260}
+.face.front.live{background:#b8343e}
 .stamp{position:absolute;left:50%;top:38%;z-index:400;transform:translate(-50%,-50%) rotate(-6deg) scale(1.5);opacity:0;pointer-events:none;font-family:var(--display);font-weight:700;font-size:5.5cqw;white-space:nowrap;padding:.4cqw 2.6cqw;background:rgba(10,6,4,.85);box-shadow:0 0 0 .6cqw currentColor,0 0 0 1.2cqw #000;transition:opacity .2s,transform .25s steps(4)}
 .stamp.on{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)}
 .stamp.win{color:var(--gold)}
@@ -156,8 +172,18 @@ button{cursor:pointer}
 
 .calm *,.calm *::before,.calm *::after{animation-duration:.001ms!important;animation-iteration-count:1!important}
 
+@media (max-width:1000px){
+ .board{grid-template-columns:1fr;gap:16px}
+ .stage-host .stage{width:min(100%,calc((100dvh - 120px) * 1.6))}
+}
+/* Phones: zoom the camera onto the camp (crop the empty sky and edges) so characters are bigger. */
+@media (max-width:700px){
+ .stage-host .stage{aspect-ratio:252/176;width:100%}
+ .stage-host .world{left:-13.49%;width:126.98%;top:-13.64%;height:113.64%}
+ .game-view{padding-left:8px;padding-right:8px}
+ .board{padding:4px}
+}
 @media (max-width:900px){
- .board{grid-template-columns:1fr}
  .title-view{grid-template-columns:1fr;padding:22px 16px 32px;align-content:start}
  .hero-side{order:-1}
  .hero-lineup{gap:4px}

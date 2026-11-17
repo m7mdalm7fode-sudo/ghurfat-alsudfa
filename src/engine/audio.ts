@@ -5,7 +5,7 @@
  * The starter ships no audio files: SFX are synthesized and the music is a generative ambient
  * pad. To use recorded assets, `load(url)` an AudioBuffer and `playBuffer()` it on either bus.
  */
-export type Sfx = 'bump' | 'fall' | 'count' | 'go' | 'join' | 'ui' | 'win' | 'lose'
+export type Sfx = 'bump' | 'fall' | 'count' | 'go' | 'join' | 'ui' | 'win' | 'lose' | 'shot' | 'click' | 'rack' | 'load' | 'item' | 'heal' | 'rope' | 'crackle' | 'hit'
 
 export class Audio {
   readonly ctx: AudioContext
@@ -71,7 +71,33 @@ export class Audio {
       o.start(t + delay)
       o.stop(t + delay + dur + 0.05)
     }
+    // Filtered white noise with a fast decay: gunshots, clicks, cloth, fire.
+    const noise = (dur: number, vol: number, delay = 0, freq = 2000, type: BiquadFilterType = 'lowpass', curve = 2.5) => {
+      const len = Math.max(1, Math.floor(this.ctx.sampleRate * dur))
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate)
+      const d = buf.getChannelData(0)
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, curve)
+      const src = this.ctx.createBufferSource()
+      src.buffer = buf
+      const f = this.ctx.createBiquadFilter()
+      f.type = type
+      f.frequency.setValueAtTime(freq, t + delay)
+      if (type === 'lowpass') f.frequency.exponentialRampToValueAtTime(Math.max(80, freq * .12), t + delay + dur)
+      const g = this.ctx.createGain()
+      g.gain.value = vol
+      src.connect(f).connect(g).connect(this.sfx)
+      src.start(t + delay)
+    }
     switch (name) {
+      case 'shot': noise(.04, 1.4, 0, 9000, 'highpass', 1); noise(1.1, 1.3, 0, 2600); tone(110, 38, .5, 'sine', .9); noise(.6, .25, .12, 700); break
+      case 'click': noise(.025, .5, 0, 4500, 'bandpass', 3); tone(2400, 1900, .03, 'square', .08); noise(.02, .3, .07, 3000, 'bandpass', 3); break
+      case 'rack': noise(.05, .55, 0, 2200, 'bandpass', 2); noise(.03, .4, .05, 4000, 'bandpass', 3); noise(.06, .6, .2, 1800, 'bandpass', 2); noise(.03, .5, .26, 3500, 'bandpass', 3); break
+      case 'load': for (let i = 0; i < 4; i++) noise(.035, .4, i * .14, 3200, 'bandpass', 3); noise(.06, .5, .62, 1800, 'bandpass', 2); break
+      case 'item': noise(.08, .25, 0, 1500, 'bandpass', 2); tone(740, 980, .1, 'triangle', .12, .05); break
+      case 'heal': noise(.3, .15, 0, 900, 'lowpass', 1); tone(520, 780, .25, 'sine', .14, .1); break
+      case 'rope': noise(.18, .35, 0, 1200, 'bandpass', 1.5); noise(.12, .3, .2, 900, 'bandpass', 1.5); break
+      case 'hit': tone(160, 60, .3, 'sine', .5); noise(.15, .4, 0, 600); break
+      case 'crackle': noise(.012 + Math.random() * .02, .05 + Math.random() * .08, 0, 2000 + Math.random() * 3000, 'bandpass', 4); break
       case 'bump': tone(140, 60, 0.16, 'sine', 0.45); tone(420, 180, 0.08, 'square', 0.08); break
       case 'fall': tone(520, 70, 0.7, 'sawtooth', 0.16); break
       case 'count': tone(520, 520, 0.12, 'triangle', 0.25); break

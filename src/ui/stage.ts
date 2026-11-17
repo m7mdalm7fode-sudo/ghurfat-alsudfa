@@ -1,4 +1,4 @@
-import {SEATS, type Result, type Role, type RoomState, type Seat} from '../net/protocol'
+import {SEATS, type Bullet, type Result, type Role, type RoomState, type Seat} from '../net/protocol'
 import {CHARACTERS} from './characters'
 import {sprite, SW, SH, type View} from './pixel'
 
@@ -114,10 +114,15 @@ function buildGround() {
   g.fillStyle = '#b7832e'; g.fillRect(137, 102, 1, 7); g.fillRect(138, 103, 1, 4)
   g.fillStyle = '#f0e6d2'; g.fillRect(140, 108, 2, 2); g.fillRect(143, 109, 2, 2)
   // Rug for the face-down shells.
-  g.fillStyle = '#6d2533'; g.fillRect(184, 110, 40, 8)
-  g.fillStyle = '#d9a441'; g.fillRect(184, 110, 40, 1); g.fillRect(184, 117, 40, 1)
+  g.fillStyle = '#6d2533'; g.fillRect(178, 104, 52, 16)
+  g.fillStyle = '#d9a441'; g.fillRect(178, 104, 52, 1); g.fillRect(178, 119, 52, 1)
+  for (let x = 180; x < 229; x += 4) g.fillRect(x, 111, 1, 1)
   return c
 }
+
+export const ITEM_ICON: Record<string, string> = {scope: '🔭', dallah: '☕', rope: '🪢', bukhoor: '💨'}
+export const ITEM_NAME: Record<string, string> = {scope: 'المنظار', dallah: 'الدلّة', rope: 'الحبل', bukhoor: 'البخور'}
+export const ITEM_HINT: Record<string, string> = {scope: 'تعرف الطلقة القادمة', dallah: 'تسترد روحًا', rope: 'التالي يخسر دوره', bukhoor: 'يكشف الباقي للجميع'}
 
 type Spark = {x: number; y: number; vx: number; vy: number; life: number; col: string}
 
@@ -138,9 +143,10 @@ export class Stage {
   private role: Role = 'spectator'
   private targets: Seat[] = []
   private slots = {} as Record<Seat, Slot>
-  private beam: {from: Seat; to: Seat; t0: number} | null = null
-  private flash: {kind: 'safe' | 'danger'; t0: number} | null = null
-  private hit: {seat: Seat; kind: 'safe' | 'danger'; t0: number} | null = null
+  private beam: {from: Seat; to: Seat; t0: number; kind: Bullet} | null = null
+  private flash: {kind: Bullet; t0: number} | null = null
+  private hit: {seat: Seat; kind: Bullet; t0: number} | null = null
+  private armed: Seat | '' = ''
   private timers: number[] = []
   private active = true
   private lastDraw = 0
@@ -149,7 +155,7 @@ export class Stage {
   constructor(host: HTMLElement, private onSeat?: (seat: Seat) => void) {
     this.el = document.createElement('div')
     this.el.className = 'stage'
-    this.el.innerHTML = `<canvas width="${W}" height="${H}" aria-label="مخيم الصحراء حول النار"></canvas><div class="seats"></div><div class="reveal" aria-live="polite"><div class="card-3d"><div class="face back"></div><div class="face front"></div></div></div><div class="stamp"></div>`
+    this.el.innerHTML = `<div class="world"><canvas width="${W}" height="${H}" aria-label="مخيم الصحراء حول النار"></canvas><div class="seats"></div></div><div class="reveal" aria-live="polite"><div class="card-3d"><div class="face back"></div><div class="face front"></div></div></div><div class="stamp"></div>`
     host.appendChild(this.el)
     this.cv = this.el.querySelector('canvas')!
     this.g = this.cv.getContext('2d')!
@@ -218,7 +224,9 @@ export class Stage {
       b.classList.toggle('targetable', targets.includes(seat))
       b.disabled = !targets.includes(seat)
       b.querySelector('.nm')!.textContent = present ? (seat === role ? 'أنت' : st.name || CHARACTERS[seat].title) : ''
-      b.querySelector('.tt')!.textContent = !present ? '' : s.phase === 'ended' && s.winner === seat ? 'الفائز' : out ? 'خرج' : `${CHARACTERS[seat].title} · ${st.score}★`
+      const hearts = '♥'.repeat(Math.max(0, st?.lives || 0)) + '♡'.repeat(Math.max(0, 3 - (st?.lives || 0)))
+      const items = (st?.items || []).map(i => ITEM_ICON[i]).join('')
+      b.querySelector('.tt')!.textContent = !present ? '' : s.phase === 'ended' && s.winner === seat ? `الفائز · ${st.score}★` : out ? 'خرج' : live ? `${hearts}${items ? ' · ' + items : ''}` : `${CHARACTERS[seat].title} · ${st.score}★`
       b.setAttribute('aria-label', present ? `${st.name} — ${CHARACTERS[seat].title}` : 'مقعد شاغر')
     }
     if (s.phase === 'waiting' || s.phase === 'countdown') this.hideStamp()
@@ -229,27 +237,35 @@ export class Stage {
     const now = performance.now() / 1000
     const front = this.reveal.querySelector<HTMLElement>('.front')!
     front.className = `face front ${r.kind}`
-    front.innerHTML = r.kind === 'danger' ? '<i class="ico">✦</i><b>خطرة</b>' : '<i class="ico">☾</i><b>آمنة</b>'
+    front.innerHTML = r.kind === 'live' ? '<i class="ico shell live"></i><b>حيّة</b>' : '<i class="ico shell blank"></i><b>فارغة</b>'
     this.reveal.classList.remove('show', 'flip')
-    void this.reveal.offsetWidth
-    this.reveal.classList.add('show')
-    this.later(() => this.reveal.classList.add('flip'), calm ? 50 : 380)
-    this.later(() => this.reveal.classList.remove('show', 'flip'), calm ? 1500 : 2100)
-    if (r.actor !== r.target) this.beam = {from: r.actor, to: r.target, t0: now}
-    const delay = calm ? .1 : .7
+    // The shooter picks up the rifle and aims; the shot lands after SHOT_DELAY.
+    this.armed = r.actor
+    this.beam = {from: r.actor, to: r.target, t0: now + this.shotDelay(calm), kind: r.kind}
+    const delay = this.shotDelay(calm) * 1000
     this.later(() => {
       const t = performance.now() / 1000
       this.flash = {kind: r.kind, t0: t}
       this.hit = {seat: r.target, kind: r.kind, t0: t}
-      if (!calm) {
-        const sl = this.slots[r.target], top = sl.y - SH * sl.s
-        const col = r.kind === 'danger' ? ['#ff4d4d', '#ffb43a', '#fff0c0'] : ['#4fe0d0', '#bff6ee']
-        for (let i = 0; i < (r.kind === 'danger' ? 26 : 14); i++) this.sparks.push({x: sl.x, y: top + 6, vx: (rnd() - .5) * 60, vy: -20 - rnd() * 50, life: .6 + rnd() * .5, col: col[i % col.length]})
-        if (r.kind === 'danger') this.el.classList.add('shake')
+      void this.reveal.offsetWidth
+      this.reveal.classList.add('show', 'flip')
+      const sl = this.slots[r.target], top = sl.y - SH * sl.s
+      if (r.kind === 'live') {
+        if (!calm) {
+          for (let i = 0; i < 24; i++) this.sparks.push({x: sl.x, y: top + 8, vx: (rnd() - .5) * 70, vy: -10 - rnd() * 50, life: .4 + rnd() * .5, col: ['#fff0c0', '#ffb43a', '#ff6a2a'][i % 3]})
+          this.el.classList.add('shake')
+        }
+      } else {
+        const a = this.slots[r.actor]
+        for (let i = 0; i < 10; i++) this.sparks.push({x: a.x + (rnd() - .5) * 4, y: a.y - SH * a.s * .55, vx: (rnd() - .5) * 10, vy: -6 - rnd() * 10, life: .8 + rnd() * .6, col: rnd() < .5 ? '#8a8078' : '#b0a89e'})
       }
-    }, delay * 1000)
-    this.later(() => this.el.classList.remove('shake'), delay * 1000 + 500)
+    }, delay)
+    this.later(() => { this.el.classList.remove('shake'); this.armed = '' }, delay + 600)
+    this.later(() => this.reveal.classList.remove('show', 'flip'), delay + (calm ? 900 : 1400))
   }
+
+  /** Seconds between the action and the bang (aim + suspense). */
+  shotDelay(calm: boolean) { return calm ? .15 : .9 }
 
   showStamp(text: string, kind: 'win' | 'out') { this.stamp.className = `stamp on ${kind}`; this.stamp.textContent = text }
   hideStamp() { this.stamp.className = 'stamp' }
@@ -264,11 +280,14 @@ export class Stage {
     // ---- World layer (lit by the fire) ----
     w.clearRect(0, 0, W, H)
     w.drawImage(this.ground, 0, 0)
-    const cards = live ? s!.chamber.total : 0
-    for (let i = 0; i < cards; i++) {
-      const x = 204 - Math.round(cards * 5 / 2) + i * 5
-      w.fillStyle = '#e8b84a'; w.fillRect(x, 105, 4, 6)
-      w.fillStyle = '#3a2160'; w.fillRect(x + 1, 106, 2, 4)
+    // The rifle rests on the rug unless someone is holding it; unknown bullets lie beside it.
+    if (!this.armed) this.rifle(w, 182, 108, 1)
+    const left = live ? s!.chamber.total : 0
+    for (let i = 0; i < left; i++) {
+      const x = 204 - Math.round(left * 4 / 2) + i * 4
+      w.fillStyle = '#c8a24a'; w.fillRect(x, 113, 2, 4)
+      w.fillStyle = '#3a2a22'; w.fillRect(x, 117, 2, 1)
+      w.fillStyle = '#ffe08a'; w.fillRect(x, 113, 1, 1)
     }
     const order = [...SEATS].sort((a, b) => this.slots[a].y - this.slots[b].y)
     for (const seat of order) {
@@ -289,7 +308,7 @@ export class Stage {
         continue
       }
       const frame = (this.calm ? 0 : Math.floor(t * 1.1 + SEATS.indexOf(seat) * .7) % 2) as 0 | 1
-      const hit = this.hit && this.hit.seat === seat && t - this.hit.t0 < .6 && this.hit.kind === 'danger'
+      const hit = this.hit && this.hit.seat === seat && t - this.hit.t0 < .6 && this.hit.kind === 'live'
       const dx = hit && !this.calm ? (Math.floor(t * 30) % 2 ? 1 : -1) : 0
       w.drawImage(sprite(seat, sl.view, frame), x0 + dx, y0, sw, sh)
     }
@@ -307,8 +326,8 @@ export class Stage {
   private light(t: number, flash: {kind: string} | null, fa: number) {
     const img = this.world.g.getImageData(0, 0, W, H), d = img.data
     const flick = this.calm ? 1 : .9 + .07 * Math.sin(t * 11) + .05 * Math.sin(t * 23 + 1)
-    const boost = flash?.kind === 'danger' ? 1 + fa * .5 : 1
-    const red = flash?.kind === 'danger' ? 90 * fa : 0, teal = flash?.kind === 'safe' ? 50 * fa : 0
+    const boost = flash?.kind === 'live' ? 1 + fa * 1.2 : 1
+    const red = flash?.kind === 'live' ? 70 * fa : 0, teal = 0
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const i = y * W + x, p = i * 4
       if (d[p + 3] === 0) continue
@@ -322,7 +341,7 @@ export class Stage {
   }
 
   private fire(t: number, flash: {kind: string} | null, fa: number) {
-    const g = this.g, danger = flash?.kind === 'danger', safe = flash?.kind === 'safe'
+    const g = this.g, danger = flash?.kind === 'live', safe = false
     const boost = 1 + (danger ? fa * .9 : 0)
     g.save(); g.globalCompositeOperation = 'lighter'
     const glow = g.createRadialGradient(FX, FY - 6, 2, FX, FY - 6, 46)
@@ -367,18 +386,42 @@ export class Stage {
       const sl = this.slots[s.winner]
       for (let i = 0; i < 3; i++) { g.fillStyle = i ? '#ffe08a' : '#e8b84a'; g.fillRect(Math.round(sl.x + (rnd() - .5) * SW * sl.s * 1.4), Math.round(sl.y - rnd() * SH * sl.s * 1.2), 1, 1) }
     }
-    // Challenge beam: dashed pixel arc from actor to target.
-    if (this.beam && t - this.beam.t0 < 1.3) {
+    // The shooter holds the rifle, aimed at the target (or at himself), then fires.
+    if (this.armed && this.beam) {
       const a = this.slots[this.beam.from], b = this.slots[this.beam.to]
-      const ax = a.x, ay = headTop(this.beam.from) + 4, bx = b.x, by = headTop(this.beam.to) + 4
-      const cx = (ax + bx) / 2, cy = Math.min(ay, by) - 40
-      g.fillStyle = CHARACTERS[this.beam.from].color
-      const shift = Math.floor(t * 30)
-      for (let i = 0; i <= 80; i++) {
-        if (((i + shift) >> 2) % 2) continue
-        const u = i / 80, x = (1 - u) ** 2 * ax + 2 * (1 - u) * u * cx + u * u * bx, y = (1 - u) ** 2 * ay + 2 * (1 - u) * u * cy + u * u * by
-        g.fillRect(Math.round(x), Math.round(y), 1, 1)
+      const ax = a.x, ay = Math.round(a.y - SH * a.s * .5)
+      const self = this.beam.from === this.beam.to
+      let dx = self ? 0 : b.x - ax, dy = self ? -1 : (b.y - SH * b.s * .5) - ay
+      const len = Math.hypot(dx, dy) || 1
+      dx /= len; dy /= len
+      const L = Math.round(10 + 6 * a.s), tipX = ax + dx * L, tipY = ay + dy * L
+      for (let i = 0; i <= L; i++) {
+        g.fillStyle = i < L * .4 ? '#6b3f22' : i < L * .5 ? '#2a2a2e' : '#4a4a52'
+        g.fillRect(Math.round(ax + dx * i), Math.round(ay + dy * i), 2, 2)
+      }
+      const since = t - this.beam.t0
+      if (since >= 0 && since < .12 && this.beam.kind === 'live') {
+        // Muzzle flash and a short tracer.
+        g.fillStyle = '#fff4c2'
+        for (let r = 0; r < 4; r++) g.fillRect(Math.round(tipX - r), Math.round(tipY - r), r * 2 + 2, r * 2 + 2)
+        if (!self) {
+          g.fillStyle = '#ffe08a'
+          const tx = b.x, ty = b.y - SH * b.s * .55
+          for (let i = 0; i < 40; i++) { const u = i / 40; g.fillRect(Math.round(tipX + (tx - tipX) * u), Math.round(tipY + (ty - tipY) * u), 1, 1) }
+        }
       }
     }
+    // White frame flash on a live shot.
+    if (this.flash && this.flash.kind === 'live' && t - this.flash.t0 < .08 && !this.calm) { g.fillStyle = 'rgba(255,240,200,.55)'; g.fillRect(0, 0, W, H) }
+  }
+
+  /** A pixel rifle lying on the rug: wooden stock, dark barrel. */
+  private rifle(g: CanvasRenderingContext2D, x: number, y: number, s: number) {
+    g.fillStyle = '#6b3f22'; g.fillRect(x, y + 1, 12 * s, 3 * s); g.fillRect(x, y + 3, 4 * s, 2 * s)
+    g.fillStyle = '#8a5530'; g.fillRect(x + 1, y + 1, 10 * s, 1)
+    g.fillStyle = '#2a2a2e'; g.fillRect(x + 12 * s, y + 1, 6 * s, 3 * s)
+    g.fillStyle = '#4a4a52'; g.fillRect(x + 18 * s, y + 1, 26 * s, 2 * s)
+    g.fillStyle = '#6a6a74'; g.fillRect(x + 18 * s, y + 1, 26 * s, 1)
+    g.fillStyle = '#1a1a1e'; g.fillRect(x + 14 * s, y + 4, 2 * s, 2 * s)
   }
 }
