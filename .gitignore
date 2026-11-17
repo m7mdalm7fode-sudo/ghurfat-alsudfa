@@ -1,0 +1,7 @@
+node_modules/
+dist/
+shots/
+.claude/
+/.manus-webdev/preview-identity.json
+# Assets restored from assets.lock.json
+/assets/share/favicon.png

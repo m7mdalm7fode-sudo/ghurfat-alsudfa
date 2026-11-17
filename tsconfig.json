@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src/main.ts", "src/game/game.ts", "src/net/protocol.ts", "src/net/connection.ts", "src/net/session.ts", "src/engine/renderer.ts", "src/engine/save.ts", "vite.config.ts"]
+}
