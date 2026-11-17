@@ -240,3 +240,79 @@ button{cursor:pointer}
  .match-bar .rd span{font-size:11px}
  .face.front b{font-size:12px}
 }
+
+/* ---------- Action buttons drawn above players on the scene ---------- */
+.seat .cta{display:none}
+.seat.has-cta{cursor:pointer}
+.seat.has-cta .cta{display:block;margin-top:3px;padding:3px 8px;background:#b8343e;color:#fff;font-weight:800;font-size:max(11px,1.5cqw);white-space:nowrap;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.25),0 0 0 2px #000;animation:pulse 1s steps(2) infinite}
+.seat.me.has-cta .cta{background:var(--gold);color:#2a1408}
+.seat.has-cta .plate{pointer-events:auto;cursor:pointer;background:rgba(10,6,4,.92)}
+/* My own plate sits on my back; during my turn it rises above my head with the button. */
+.seat.front.has-cta .plate{bottom:100%;transform:translate(-50%,-4px)}
+.seat.has-cta:active .cta{transform:translateY(1px)}
+.act-hint{font-size:13px;color:var(--muted);line-height:1.6}
+.act-hint:empty{display:none}
+.act-hint.mine{color:var(--gold);font-weight:800}
+.act-box:has(.act-hint:empty):has(.target-picker:empty){display:none!important}
+
+/* ---------- Phone: the whole game fits on one screen, no scrolling ---------- */
+@media (max-width:700px){
+ :root{--px:2px}
+ .game-view.is-live{display:flex;flex-direction:column;height:100dvh;overflow:hidden;padding:max(6px,env(safe-area-inset-top)) 8px max(6px,env(safe-area-inset-bottom))}
+ .game-view header{flex:none;margin:0 0 6px;gap:4px}
+ .game-view header .ghost{min-height:32px;padding:0 6px;font-size:11px}
+ .room-label{font-size:11px;padding:2px 4px}
+ .board{flex:1;min-height:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:2px}
+ .stage-col{flex:none;gap:6px;width:100%}
+ .stage-host .stage{width:100%}
+ .match-bar{gap:5px}
+ .match-bar .rd{display:flex;justify-content:center;gap:4px;padding:3px 4px;box-shadow:0 0 0 2px var(--edge)}
+ .match-bar .rd b{font-size:11px}
+ .match-bar .rd b::after{content:':'}
+ .match-bar .rd span{font-size:11px}
+ .match-bar .rd.now{box-shadow:0 0 0 2px var(--gold)}
+ .match-bar .rd.done{border-bottom-width:3px}
+ .stage{margin:2px auto}
+ /* The panel under the scene takes what is left of the screen. */
+ .hud{flex:1;min-height:0;overflow-y:auto;padding:8px;gap:6px;box-shadow:0 0 0 2px var(--edge)}
+ .hud>section{padding:6px 8px;gap:5px;box-shadow:0 0 0 1px var(--edge)}
+ .hud h3{font-size:11px}
+ .turn-box .phase{font-size:17px;line-height:1.3}
+ .phase.mine{text-shadow:2px 2px 0 #3a1a0e}
+ .timer{height:5px}
+ .notice{min-height:0;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ /* Rifle: one line — announced bullets and what is left. */
+ .gun-box h3{display:none}
+ .loaded{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+ .loaded .row{gap:6px}
+ .loaded .lbl{display:none}
+ .loaded .shells{gap:3px}
+ .loaded .shell{width:7px;height:15px}
+ .loaded .counts{font-size:12px;gap:8px}
+ .loaded .counts b{font-size:15px}
+ .peek{padding:4px 8px;font-size:12px}
+ .act-box{padding:6px!important}
+ .actions{gap:8px;padding:2px}
+ .actions button{min-height:46px;font-size:14px}
+ .target-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+ .target-picker:empty{display:none}
+ .target-picker span{grid-column:1/-1;font-size:12px}
+ .target-picker button{min-height:36px;padding:0 4px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .target-picker button em{font-size:10px}
+ /* While choosing a target, hide the items strip and the log so everything still fits. */
+ .hud.picking .items-box,.hud.picking .log-box{display:none}
+ /* Items: one sideways strip. */
+ .items-box h3{display:flex}
+ .items{display:flex;overflow-x:auto;gap:8px;padding:3px 3px 5px;scrollbar-width:none}
+ .items::-webkit-scrollbar{display:none}
+ .items button{flex:none;min-width:62px;min-height:50px;padding:4px 6px;font-size:11px}
+ .items button em{font-size:18px}
+ .items button small{display:none}
+ .items .muted{font-size:12px}
+ /* Only the latest event. */
+ .log-box{padding:5px 8px!important}
+ .log-box h3{display:none}
+ .log{border:0;padding:0;font-size:12px}
+ .log li:not(:first-child){display:none}
+ .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 50px)}
+}

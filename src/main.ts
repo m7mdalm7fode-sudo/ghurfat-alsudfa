@@ -18,7 +18,6 @@ type Pick=''|'shoot'|'rope'|'steal'
 const ERRORS:Record<string,string>={not_your_turn:'ليس دورك الآن',invalid_target:'لا يمكن ذلك الآن',not_ready:'الجولة لم تبدأ بعد',invalid_message:'رسالة غير صالحة'}
 const CONN_TEXT:Record<ConnectionState,string>={stopped:'غير متصل',discovering:'جارٍ البحث عن الطاولة…',connecting:'جارٍ الاتصال…',open:'متصل',retry:'انقطع الاتصال — نعيد المحاولة…',unavailable:'خادم اللعب غير متاح'}
 const ITEM_SFX:Record<Item,Sfx>={scope:'item',dallah:'heal',rope:'rope',bukhoor:'item',double:'rack',steal:'item',eject:'rack',flip:'click'}
-const PICK_TEXT:Record<Exclude<Pick,''>,string>={shoot:'على من تطلق؟',rope:'من تربط بالحبل؟',steal:'من تسرق منه؟'}
 
 function readJSON<T>(key:string,fallback:T):T{try{const v=localStorage.getItem(key);return v?{...fallback,...JSON.parse(v)}:fallback}catch{return fallback}}
 function writeJSON(key:string,v:unknown){try{localStorage.setItem(key,JSON.stringify(v))}catch{/* storage blocked */}}
@@ -75,10 +74,7 @@ async function boot(){
   <div class="hud">
    <section class="turn-box"><div class="phase">…</div><div class="timer"><i></i></div><div class="notice"></div></section>
    <section class="gun-box"><h3>البندقية</h3><div class="loaded"></div><div class="peek" hidden></div></section>
-   <section class="act-box">
-    <div class="actions"><button class="action-self" data-action="self">أطلق على نفسك</button><button class="action-shoot" data-action="shoot">أطلق على لاعب</button></div>
-    <div class="target-picker"></div>
-   </section>
+   <section class="act-box"><div class="act-hint"></div><div class="target-picker"></div></section>
    <section class="items-box"><h3>أدواتك <small class="cap"></small></h3><div class="items"></div></section>
    <section class="log-box"><h3>ما حدث</h3><ol class="log" aria-label="سجل المجلس"></ol></section>
   </div>
@@ -185,12 +181,25 @@ async function boot(){
   return SEATS.filter(seat=>{const x=s.seats[seat];if(seat===role||!x.alive||!x.connected)return false;if(mode==='rope')return !x.skip;if(mode==='steal')return x.items.some(i=>i!=='steal');return true})
  }
 
+ /** Tapping the button above a player on the scene: shoot him, shoot yourself, or pick him for the rope/theft. */
  function onSeat(seat:Seat){
-  if(!state||!targets(state).includes(seat))return
-  if(pick==='shoot'){pick='';send({type:'action',action:'shoot',target:seat})}
-  else if(pick==='rope'){pick='';send({type:'action',action:'item',item:'rope',target:seat})}
-  else if(pick==='steal'){stealFrom=seat}
-  render(state)
+  const s=state;if(!s||s.phase!=='live'||s.turn!==role)return
+  if(pick==='rope'){if(!targets(s,'rope').includes(seat))return;pick='';send({type:'action',action:'item',item:'rope',target:seat})}
+  else if(pick==='steal'){if(!targets(s,'steal').includes(seat))return;stealFrom=seat}
+  else if(seat===role){send({type:'action',action:'self'})}
+  else if(targets(s,'shoot').includes(seat)){send({type:'action',action:'shoot',target:seat})}
+  render(s)
+ }
+
+ /** Action labels drawn above players on the scene during your turn. */
+ function seatLabels(s:RoomState):Partial<Record<Seat,string>>{
+  const out:Partial<Record<Seat,string>>={}
+  if(s.phase!=='live'||role==='spectator'||s.turn!==role||stealFrom)return out
+  if(pick==='rope'){for(const x of targets(s,'rope'))out[x]='🪢 اربطه';return out}
+  if(pick==='steal'){for(const x of targets(s,'steal'))out[x]='🖐️ اسرق منه';return out}
+  for(const x of targets(s,'shoot'))out[x]='🎯 أطلق'
+  out[role]='🎯 أطلق على نفسك'
+  return out
  }
 
  function renderMatch(s:RoomState){
@@ -212,17 +221,21 @@ async function boot(){
   peekEl.className=`peek ${peek}`
   peekEl.textContent=peek?`🔭 أنت تعرف: الطلقة القادمة ${peek==='live'?'حيّة':'فارغة'}`:''
   $('.room-label').textContent=room
-  root.querySelectorAll<HTMLButtonElement>('.actions button').forEach(b=>{b.disabled=!mine;b.classList.toggle('active',pick==='shoot'&&b.dataset.action==='shoot')})
   if(!mine){pick='';stealFrom=''}
-  const t=mine?targets(s):[]
+  const labels=seatLabels(s)
+  const t=(Object.keys(labels) as Seat[]).filter(x=>x!==role)
+  const hint=$('.act-hint')
+  hint.className=`act-hint ${mine?'mine':''}`
+  hint.textContent=!live?'':!mine?(me?.alive?'انتظر دورك…':'تتابع الجولة.'):pick==='rope'?'🪢 اضغط «اربطه» فوق اللاعب في الشاشة':pick==='steal'&&!stealFrom?'🖐️ اضغط «اسرق منه» فوق اللاعب في الشاشة':pick==='steal'?'':'🎯 اضغط «أطلق» فوق لاعب في الشاشة، أو «أطلق على نفسك» فوقك'
   if(pick==='steal'&&stealFrom){
    const victim=s.seats[stealFrom]
    picker.innerHTML=`<span>ماذا تسرق من ${esc(nameOf(stealFrom))}؟</span>${victim.items.map(i=>`<button data-steal="${i}" ${i==='steal'?'disabled':''}>${ITEM_ICON[i]} ${ITEM_NAME[i]}</button>`).join('')}<button class="cancel" data-action="cancel">إلغاء</button>`
-  }else picker.innerHTML=pick&&t.length?`<span>${PICK_TEXT[pick]}</span>${t.map(seat=>`<button data-target="${seat}" style="--c:${CHARACTERS[seat].color}">${esc(nameOf(seat))} <em>${'♥'.repeat(s.seats[seat].lives)}</em></button>`).join('')}<button class="cancel" data-action="cancel">إلغاء</button>`:''
+  }else picker.innerHTML=pick?`<button class="cancel" data-action="cancel">إلغاء ${pick==='rope'?'الحبل':'السرقة'}</button>`:''
   const items=live&&me?.alive?me.items:[]
   $('.cap').textContent=live&&me?`${items.length} من ${s.match.cap}`:''
   itemsEl.innerHTML=items.length?items.map((i,k)=>{const off=!mine||(i==='dallah'&&me!.lives>=s.match.max_lives)||(i==='double'&&me!.double)||((i==='rope'||i==='steal')&&!targets(s,i).length);return `<button data-item="${i}" data-k="${k}" ${off?'disabled':''} class="${pick===i?'active':''}"><em>${ITEM_ICON[i]}</em>${ITEM_NAME[i]}<small>${ITEM_HINT[i]}</small></button>`}).join(''):`<p class="muted">${live?'لا أدوات معك الآن.':'تُوزَّع الأدوات مع كل حشوة.'}</p>`
-  stage.update(s,role,t)
+  stage.update(s,role,t,labels)
+  $('.hud').classList.toggle('picking',pick==='steal'&&Boolean(stealFrom))
   view.classList.toggle('turn-mine',mine)
   showConn()
  }

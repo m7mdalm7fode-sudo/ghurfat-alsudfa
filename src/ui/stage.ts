@@ -207,7 +207,7 @@ export class Stage {
       b.type = 'button'
       b.className = 'seat'
       b.style.setProperty('--c', CHARACTERS[seat].color)
-      b.innerHTML = `<span class="plate"><b class="nm"></b><span class="hp"></span><small class="tt"></small></span>`
+      b.innerHTML = `<span class="plate"><b class="nm"></b><span class="hp"></span><small class="tt"></small><span class="cta"></span></span>`
       b.addEventListener('click', () => this.onSeat?.(seat))
       wrap.appendChild(b)
       this.seats.set(seat, b)
@@ -243,7 +243,8 @@ export class Stage {
     })
   }
 
-  update(s: RoomState, role: Role, targets: Seat[]) {
+  /** `labels`: an action button shown above a seat (e.g. «أطلق»); seats without one are not clickable. */
+  update(s: RoomState, role: Role, targets: Seat[], labels: Partial<Record<Seat, string>> = {}) {
     const moved = role !== this.role
     this.state = s
     this.role = role
@@ -258,8 +259,11 @@ export class Stage {
       b.classList.toggle('me', seat === role)
       b.classList.toggle('out', out)
       b.classList.toggle('winner', s.phase === 'ended' && s.winner === seat)
+      const label = present ? labels[seat] || '' : ''
       b.classList.toggle('targetable', targets.includes(seat))
-      b.disabled = !targets.includes(seat)
+      b.classList.toggle('has-cta', Boolean(label))
+      b.querySelector('.cta')!.textContent = label
+      b.disabled = !label
       b.querySelector('.nm')!.textContent = present ? (seat === role ? 'أنت' : st.name || CHARACTERS[seat].title) : ''
       const max = s.match?.max_lives || 3, lives = Math.max(0, st?.lives || 0)
       const hp = b.querySelector<HTMLElement>('.hp')!
