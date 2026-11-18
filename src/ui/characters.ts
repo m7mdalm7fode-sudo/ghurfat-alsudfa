@@ -22,7 +22,7 @@ export type Character = {
 }
 
 export const CHARACTERS: Record<Seat, Character> = {
-  p1: {title: 'الصقر', trait: 'نظرة بعيدة وصبر طويل', color: '#e0485f', robe: '#f2ede3', robeShade: '#d6cfc2', head: 'shemagh', cloth: '#f7f2ea', pattern: '#c8324a', agal: true, prop: 'misbaha'},
+  p1: {title: 'الصقر', trait: 'نظرة بعيدة وصبر طويل', color: '#e0485f', robe: '#f2ede3', robeShade: '#d6cfc2', head: 'shemagh', cloth: '#f7f2ea', pattern: '#c8324a', agal: true, bisht: '#4a3324', trim: '#7a5636', prop: 'misbaha'},
   p2: {title: 'الفارس', trait: 'لا يتراجع عن التحدي', color: '#e8b84a', robe: '#ece4d2', robeShade: '#cfc4ad', head: 'ghutra', cloth: '#fbfaf6', agal: true, bisht: '#1f1a24', trim: '#e8b84a', prop: 'sword'},
   p3: {title: 'الرحّال', trait: 'يعرف دروب الصحراء', color: '#2fc4b2', robe: '#d9c39a', robeShade: '#b9a27a', head: 'litham', cloth: '#2c3d74', agal: false, prop: 'staff'},
   p4: {title: 'الحكيم', trait: 'يقرأ الطاولة قبل أن يلعب', color: '#9b7cf0', robe: '#f4f0e8', robeShade: '#d8d1c4', head: 'emamah', cloth: '#f6f1e6', agal: false, bisht: '#6b4426', trim: '#e8b84a', prop: 'lantern'},

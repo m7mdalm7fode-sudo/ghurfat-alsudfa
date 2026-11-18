@@ -2,18 +2,21 @@ import type {Seat} from '../net/protocol'
 import {CHARACTERS} from './characters'
 
 /**
- * Pixel-art sprites for the six seated characters (18×24 px). The face is always a flat dark
- * shadow inside the headwear (front view) or covered by it (back view): no facial features.
+ * Pixel-art sprites for the six seated characters (24×32 px), seated on the sand with knees up
+ * like a man resting by a campfire. The face is always a flat dark shadow inside the headwear
+ * (front view) or covered by it (back view): no facial features.
  */
-export const SW = 18, SH = 24
+export const SW = 24, SH = 32
 export type View = 'front' | 'back'
-const FACE = '#0d0709'
+const FACE = '#0c0708'
+const SKIN = '#6e4a32'
 
 export function shade(hex: string, k: number): string {
   const n = parseInt(hex.slice(1), 16)
   const f = (v: number) => Math.max(0, Math.min(255, Math.round(v * (1 + k))))
   return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`
 }
+const tones = (c: string) => ({l: shade(c, .16), b: c, d: shade(c, -.28), dd: shade(c, -.5)})
 
 const cache = new Map<string, HTMLCanvasElement>()
 
@@ -27,64 +30,80 @@ export function sprite(seat: Seat, view: View, frame: 0 | 1, out = false): HTMLC
   const g = cv.getContext('2d')!
   const c = CHARACTERS[seat]
   const px = (x: number, y: number, w: number, h: number, col: string) => { g.fillStyle = col; g.fillRect(x, y, w, h) }
-  const clothDark = shade(c.cloth, -.16)
+  const robe = tones(c.robe), outer = tones(c.bisht || c.robe), cl = tones(c.cloth)
+  /** Headwear cloth with the shemagh check pattern and a shaded right side. */
   const cloth = (x: number, y: number, w: number, h: number) => {
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
       const X = x + i, Y = y + j
-      px(X, Y, 1, 1, c.pattern && (X + Y) % 2 === 0 ? c.pattern : X >= 11 ? clothDark : c.cloth)
+      px(X, Y, 1, 1, c.pattern && (X + Y) % 2 === 0 ? c.pattern : X >= 16 ? cl.d : X <= 7 ? cl.l : cl.b)
     }
   }
-  const robe = c.robe, robeD = c.robeShade, outer = c.bisht || c.robe, outerD = shade(outer, -.28)
-  const d = frame
+  const d = frame // breathing: head and shoulders dip one pixel
 
-  // Seated, legs crossed.
-  px(1, 19, 16, 3, robeD)
-  px(0, 21, 18, 3, shade(robeD, -.22))
-  // Torso widening towards the lap.
-  for (let r = 10; r < 20; r++) {
-    const w = Math.min(14, 10 + Math.floor((r - 10) / 3) * 2), x0 = 9 - w / 2
-    px(x0, r, w, 1, outer)
-    px(x0 + w - 2, r, 2, 1, outerD)
+  // Robe spread on the sand.
+  for (let r = 26; r < 32; r++) {
+    const w = Math.min(22, 16 + (r - 26) * 2), x0 = 12 - w / 2
+    px(x0, r, w, 1, r < 28 ? robe.b : r < 31 ? robe.d : robe.dd)
+    px(x0, r, 1, 1, robe.dd); px(x0 + w - 1, r, 1, 1, robe.dd)
   }
+
   if (view === 'front') {
-    if (c.bisht) { px(7, 10, 4, 10, robe); px(6, 10, 1, 10, c.trim!); px(11, 10, 1, 10, c.trim!) }
-    else px(9, 11, 1, 6, robeD)
-    px(8, 13, 2, 2, c.color)
-    if (c.prop === 'khanjar') { px(7, 16, 4, 1, '#7a5230'); px(9, 17, 1, 2, '#d7d2c4'); px(8, 16, 1, 1, '#e8b84a') }
-  } else if (c.bisht) {
-    px(4, 18, 10, 1, c.trim!)
-  }
-  // Sleeves and hands resting on the knees.
-  px(2, 11, 2, 7, outer); px(14, 11, 2, 7, outerD)
-  px(3, 18, 3, 1, robeD); px(12, 18, 3, 1, robeD)
-  // Collar.
-  px(6, 8, 6, 2, view === 'front' ? robe : outer)
-
-  // Headwear.
-  if (c.head === 'shemagh' || c.head === 'ghutra' || c.head === 'litham') {
-    cloth(5, d, 8, 2)
-    cloth(4, 2 + d, 10, 6)
-    cloth(3, 6 + d, 3, 6)
-    cloth(12, 6 + d, 3, 6)
-    if (view === 'front') {
-      px(6, 3 + d, 6, 5, FACE)
-      if (c.head === 'litham') cloth(6, 6 + d, 6, 2)
-    } else cloth(5, 7 + d, 8, 5)
-    if (c.agal) { px(4, 2 + d, 10, 1, '#141016'); px(5, 1 + d, 8, 1, '#2a2228') }
+    // Torso in the cloak, thobe showing down the middle.
+    for (let r = 11 + d; r < 24; r++) {
+      const w = r < 14 ? 12 : 14, x0 = 12 - w / 2
+      px(x0, r, w, 1, outer.b); px(x0, r, 2, 1, outer.l); px(x0 + w - 2, r, 2, 1, outer.d)
+    }
+    if (c.bisht) { px(10, 12 + d, 4, 12 - d, robe.b); px(9, 12 + d, 1, 12 - d, c.trim!); px(14, 12 + d, 1, 12 - d, c.trim!) }
+    else { px(11, 12 + d, 2, 11 - d, robe.d) }
+    // Knees drawn up.
+    for (const kx of [4, 13]) {
+      px(kx + 2, 19, 3, 1, robe.l)
+      px(kx + 1, 20, 6, 6, robe.b); px(kx, 21, 8, 5, robe.b)
+      px(kx, 21, 1, 5, robe.l); px(kx + 7, 21, 1, 5, robe.d); px(kx + 1, 20, 5, 1, robe.l)
+    }
+    px(11, 21, 2, 5, robe.dd)
+    // Arms resting on the knees, hands loosely joined.
+    px(3, 17, 7, 3, outer.b); px(3, 17, 7, 1, outer.l); px(14, 17, 7, 3, outer.d); px(14, 17, 7, 1, outer.b)
+    px(10, 18, 4, 2, SKIN); px(10, 18, 4, 1, shade(SKIN, .15))
+    px(10, 14 + d, 2, 2, c.color)
   } else {
-    px(6, 3 + d, 6, 5, view === 'front' ? FACE : '#1c130f')
-    cloth(5, d, 8, 3)
-    px(4, 1 + d, 1, 2, clothDark); px(13, 1 + d, 1, 2, clothDark)
-    px(5, 2 + d, 8, 1, clothDark)
-    if (c.head === 'massar') { px(13, 3 + d, 1, 5, c.cloth); px(14, 6 + d, 1, 2, c.cloth) }
+    // Seen from behind: broad back in the cloak, the hood's tail hanging down.
+    for (let r = 11 + d; r < 27; r++) {
+      const w = r < 14 ? 12 : r < 22 ? 16 : 18, x0 = 12 - w / 2
+      px(x0, r, w, 1, outer.b); px(x0, r, 2, 1, outer.l); px(x0 + w - 2, r, 2, 1, outer.d)
+    }
+    px(11, 15 + d, 2, 11, outer.d)
+    if (c.bisht) { px(3, 25, 18, 1, c.trim!) }
+    px(2, 18, 2, 5, outer.d); px(20, 18, 2, 5, outer.dd)
+  }
+
+  // Headwear and the faceless head.
+  if (c.head === 'shemagh' || c.head === 'ghutra' || c.head === 'litham') {
+    cloth(8, d, 8, 2)
+    cloth(7, 2 + d, 10, 3)
+    cloth(6, 5 + d, 12, 7)
+    cloth(4, 9 + d, 4, 8)
+    cloth(16, 9 + d, 4, 8)
+    if (view === 'front') {
+      px(8, 4 + d, 8, 7, FACE); px(9, 11 + d, 6, 1, FACE)
+      if (c.head === 'litham') cloth(8, 8 + d, 8, 3)
+    } else cloth(7, 10 + d, 10, 7)
+    if (c.agal) { px(7, 2 + d, 10, 1, '#121013'); px(7, 3 + d, 10, 1, '#2a2429'); px(6, 4 + d, 1, 1, '#121013'); px(17, 4 + d, 1, 1, '#121013') }
+  } else {
+    px(8, 4 + d, 8, 8, view === 'front' ? FACE : '#1c130f')
+    cloth(7, d, 10, 4)
+    px(6, 1 + d, 1, 3, cl.d); px(17, 1 + d, 1, 3, cl.d)
+    px(7, 2 + d, 10, 1, cl.d)
+    if (c.head === 'massar') { px(17, 4 + d, 2, 6, c.cloth); px(18, 9 + d, 2, 3, c.cloth) }
   }
 
   // Small props.
-  if (c.prop === 'staff') px(0, 1, 1, 23, '#7a5230')
-  if (c.prop === 'sword') { px(16, 12, 1, 9, '#3b2a1d'); px(16, 11, 1, 1, '#e8b84a') }
-  if (c.prop === 'lantern') { px(15, 16, 3, 4, '#c87a3a'); px(16, 17, 1, 2, '#ffd27a') }
-  if (c.prop === 'dallah') { px(15, 17, 3, 4, '#d9a441'); px(16, 16, 1, 1, '#b7832e'); px(14, 17, 1, 1, '#d9a441') }
-  if (c.prop === 'misbaha') { px(4, 17, 1, 3, '#e8b84a'); px(5, 19, 1, 1, '#e8b84a') }
+  if (c.prop === 'staff') px(1, 2, 1, 29, '#7a5230')
+  if (c.prop === 'sword' && view === 'front') { px(20, 14, 1, 12, '#3b2a1d'); px(20, 13, 1, 1, '#e8b84a') }
+  if (c.prop === 'lantern') { px(0, 24, 4, 5, '#c87a3a'); px(1, 25, 2, 3, '#ffd27a') }
+  if (c.prop === 'dallah') { px(20, 24, 4, 6, '#d9a441'); px(21, 23, 2, 1, '#b7832e'); px(19, 25, 1, 1, '#d9a441') }
+  if (c.prop === 'misbaha' && view === 'front') { px(11, 20, 1, 4, '#e8b84a'); px(12, 23, 1, 1, '#e8b84a') }
+  if (c.prop === 'khanjar' && view === 'front') { px(9, 16 + d, 6, 1, '#7a5230'); px(11, 17 + d, 2, 3, '#d7d2c4'); px(11, 16 + d, 1, 1, '#e8b84a') }
 
   if (out) {
     const img = g.getImageData(0, 0, SW, SH)
