@@ -1,4 +1,5 @@
 import {CHARACTERS} from '../ui/characters'
+import {icon} from '../ui/icons'
 import {esc, mountSocial, type Ctx, type GameDef, type SeatPub} from './social'
 
 export const CARD: Record<string, {name: string; icon: string; color: string; hint: string}> = {
@@ -45,7 +46,7 @@ const rules = `<h4>الفريقان</h4><ul>
 <li>يموت اللاعب إذا انكشفت ورقة «خائن» عنده، أو انكشفت كل أوراقه، أو اغتيل بالليل.</li>
 <li><b class="ok">أهل الديرة</b> يفوزون إذا انكشفت كل أوراق «خائن». <b class="bad">الخونة</b> يفوزون إذا لم يبقَ مسالم حي.</li>
 <li>من ٤ إلى ١٢ لاعبًا. الخادم يدير الفجر والليل — لا تحتاجون قائدًا.</li></ul>
-<h4>القطع</h4><ul>${Object.values(CARD).map(c => `<li>${c.icon} <b>${c.name}</b>: ${c.hint}</li>`).join('')}</ul>
+<h4>القطع</h4><ul>${Object.entries(CARD).map(([k, c]) => `<li>${icon(k)} <b>${c.name}</b>: ${c.hint}</li>`).join('')}</ul>
 <h4>أهل الديرة</h4><ul>${Object.entries(ABILITY).map(([k, a]) => `<li><b style="color:${CHARACTERS[k].color}">${CHARACTERS[k].title}</b> — ${a}</li>`).join('')}</ul>`
 
 const hiddenCount = (p: SeatPub) => (p.trial || []).filter((k: string) => !k).length
@@ -56,16 +57,16 @@ const myTurn = (c: Ctx) => c.state.phase === 'turn' && c.state.turn === c.me && 
 function aimable(id: string, p: SeatPub, c: Ctx): string {
   const sel = c.sel
   if (id === c.me || !alive(p)) return ''
-  if (sel.ability) return hiddenCount(p) ? '🦅' : ''
+  if (sel.ability) return hiddenCount(p) ? icon('falcon') : ''
   const k = sel.kind
   if (!k) return ''
-  if (k === 'camel') return sel.from ? (id === sel.from ? '' : '➡️') : (p.front?.length || p.accused || p.cat ? '🐪' : '')
+  if (k === 'camel') return sel.from ? (id === sel.from ? '' : icon('camel')) : (p.front?.length || p.accused || p.cat ? icon('camel') : '')
   if (k === 'accuse' && p.front?.includes('fort')) return ''
   if ((k === 'steal' || k === 'peek') && p.char === 'p6') return ''
   if (k === 'steal' && !p.hand) return ''
   if (k === 'help' && !p.accused) return ''
   if (k === 'pardon' && !p.front?.length && !p.cat) return ''
-  return CARD[k].icon
+  return icon(k)
 }
 
 const def: GameDef = {
@@ -83,40 +84,40 @@ const def: GameDef = {
     let cta = ''
     if (meAlive && alive(p)) {
       if (myTurn(c)) cta = aimable(id, p, c)
-      else if (s.phase === 'dawn' && mine?.team === 'traitor' && !s.seats[c.me].done) cta = '🐈‍⬛'
+      else if (s.phase === 'dawn' && mine?.team === 'traitor' && !s.seats[c.me].done) cta = icon('cat')
       else if (s.phase === 'kill' && id !== c.me) {
-        if (mine?.team === 'traitor' && !mine.votes?.[c.me]) cta = '🗡️'
-        else if (mine?.can_guard && !mine.guard) cta = '🛡️'
+        if (mine?.team === 'traitor' && !mine.votes?.[c.me]) cta = icon('weapon')
+        else if (mine?.can_guard && !mine.guard) cta = icon('shield')
       }
     }
     const trial = (id === c.me && mine ? mine.trial.map((t: {kind: string; open: boolean}) => `<i class="tc t-${t.kind} ${t.open ? '' : 'mine'}" title="${TRIAL[t.kind]}${t.open ? '' : ' (مخفية عن غيرك)'}"></i>`) : (p.trial || []).map((k: string) => `<i class="tc ${k ? `t-${k}` : 't-hid'}" title="${k ? TRIAL[k] : 'مخفية'}"></i>`)).join('')
     const marks = [
-      p.accused ? `<i class="acc">🟥${p.accused}/${p.limit}</i>` : '',
-      ...(p.front || []).map((k: string) => `<i title="${CARD[k].name}">${CARD[k].icon}</i>`),
-      p.cat ? '<i title="القطة السوداء">🐈‍⬛</i>' : '',
+      p.accused ? `<i class="acc">${icon('accuse')}${p.accused}/${p.limit}</i>` : '',
+      ...(p.front || []).map((k: string) => `<i>${icon(k, CARD[k].name)}</i>`),
+      p.cat ? `<i>${icon('cat', 'القطة السوداء')}</i>` : '',
       mine?.votes && mine.votes[c.me] === id ? '<i class="bad">✓</i>' : '',
-      mine?.guard === id ? '<i class="ok">🛡️</i>' : '',
+      mine?.guard === id ? `<i>${icon('shield')}</i>` : '',
       (s.phase === 'kill' || s.phase === 'confess' || s.phase === 'dawn') && p.done && alive(p) && s.phase !== 'dawn' ? '<i class="muted">✔</i>' : '',
     ].join('')
     const ch = CHARACTERS[p.char]
     const team = p.team === 'traitor' ? ' · خائن' : ''
-    return {char: p.char, cta, turn: s.phase === 'turn' && s.turn === id, badges: `<span class="tcs">${trial}</span><span class="mk">${marks}${p.hand ? `<i class="hand">🃏${p.hand}</i>` : ''}</span>`,
+    return {char: p.char, cta, turn: s.phase === 'turn' && s.turn === id, badges: `<span class="tcs">${trial}</span><span class="mk">${marks}${p.hand ? `<i class="hand">${icon('card', 'أوراق في يده')}${p.hand}</i>` : ''}</span>`,
       tag: `${ch?.title || ''}${team}${!alive(p) ? ' · مات' : ''}`, color: p.team === 'traitor' ? '#ff5a5a' : undefined}
   },
 
   phaseText(c) {
     const s = c.state, mine = s.mine, me = s.seats[c.me], live = alive(me), name = (id: string) => s.seats[id]?.name || ''
     switch (s.phase) {
-      case 'dawn': return live && mine?.team === 'traitor' ? (me.done ? 'وضعت القطة ✔' : 'اختر أمام من تضع القطة 🐈‍⬛') : 'الفجر — الخونة يتعارفون'
+      case 'dawn': return live && mine?.team === 'traitor' ? (me.done ? 'وضعت القطة ✔' : 'اختر أمام من تضع القطة السوداء') : 'الفجر — الخونة يتعارفون'
       case 'turn':
         if (s.turn !== c.me) return `دور ${name(s.turn)}`
-        if (c.sel.ability) return 'اختر لاعبًا لعين الصقر 🦅'
-        if (c.sel.kind === 'camel') return c.sel.from ? 'اختر إلى من تنقلها ➡️' : 'اختر من تنقل ما أمامه 🐪'
+        if (c.sel.ability) return 'اختر لاعبًا لعين الصقر'
+        if (c.sel.kind === 'camel') return c.sel.from ? 'اختر إلى من تنقلها' : 'اختر من تنقل ما أمامه'
         if (c.sel.kind) return `اختر لاعبًا لـ«${CARD[c.sel.kind].name}»`
         return s.played ? 'دورك — العب المزيد أو أنهِ دورك' : 'دورك — اسحب أو العب ورقة'
       case 'choose': return s.choosing === c.me ? 'اختر ورقة محاكمة تكشفها' : `${name(s.choosing)} يختار ورقة`
       case 'conspiracy': return 'المؤامرة! 👁️'
-      case 'kill': return !live ? 'الليل' : mine?.team === 'traitor' && !mine.votes?.[c.me] ? 'اختر من تغتال 🗡️' : mine?.can_guard && !mine.guard ? 'احمِ لاعبًا بالدرع 🛡️' : 'الليل الأسود — أغمض عينيك'
+      case 'kill': return !live ? 'الليل' : mine?.team === 'traitor' && !mine.votes?.[c.me] ? 'اختر من تغتال' : mine?.can_guard && !mine.guard ? 'احمِ لاعبًا بالدرع' : 'الليل الأسود — أغمض عينيك'
       case 'confess': return !live ? 'الاعتراف' : mine?.exempt ? 'أنت محمي الليلة ✔' : mine?.confess ? 'اخترت ✔ — بانتظار البقية' : 'خاطر… أو اكشف ورقة لتتحصن'
       case 'reveal': return 'انتهى الليل'
       case 'over': return s.winner === 'village' ? 'فاز أهل الديرة 🏆' : 'فاز الخونة 🏆'
@@ -129,26 +130,26 @@ const def: GameDef = {
     if (!mine || !me) return '<b>تشاهد</b>'
     const traitor = mine.team === 'traitor', mates = (mine.mates || []).map((s: string) => esc(c.state.seats[s]?.name || '')).join('، ')
     const peeks = (mine.peeks || []).slice(-3).map((x: {seat: string; kind: string}) => `${esc(c.state.seats[x.seat]?.name || '')}: ${TRIAL[x.kind]}`).join(' · ')
-    return `<b style="color:${traitor ? '#ff5a5a' : '#5fe08e'}">${traitor ? '👁️ خائن' : '🕊️ مسالم'}${mine.old ? ' · 🛡️ الشايب' : ''}</b>
+    return `<b style="color:${traitor ? '#ff5a5a' : '#5fe08e'}">${traitor ? `${icon('traitor')} خائن` : `${icon('dove')} مسالم`}${mine.old ? ` · ${icon('shield')} الشايب` : ''}</b>
      <small><b style="color:${CHARACTERS[me.char]?.color}">${CHARACTERS[me.char]?.title}</b> — ${ABILITY[me.char]}${me.used ? ' (استُخدمت)' : ''}</small>
      ${traitor && mates ? `<small class="bad">رفاقك: ${mates}</small>` : ''}${peeks ? `<small>🔍 ${peeks}</small>` : ''}`
   },
 
   dock(c) {
     const s = c.state, mine = s.mine, me = s.seats[c.me]
-    const info = `<span class="pill">🃏 ${s.deck} · 🔥 ${s.burn}${mine?.top ? ` · الأعلى: ${mine.top === 'night' ? '🌑 الليل' : mine.top === 'plot' ? '👁️ المؤامرة' : CARD[mine.top]?.icon + ' ' + CARD[mine.top]?.name}` : ''}</span>`
+    const info = `<span class="pill" title="الكومة · المحروقة">${icon('card')} ${s.deck} · ${icon('burn')} ${s.burn}${mine?.top ? ` · الأعلى: ${mine.top === 'night' ? 'الليل' : mine.top === 'plot' ? 'المؤامرة' : icon(mine.top) + ' ' + CARD[mine.top]?.name}` : ''}</span>`
     if (!mine || !alive(me)) return info
     let out = ''
     if (s.phase === 'confess' && !mine.exempt && !mine.confess) {
-      out = `<button class="ghost risk" data-pick="risk">🎲 أخاطر</button>${mine.trial.filter((t: {open: boolean}) => !t.open).map((t: {id: number; kind: string}) => `<button class="ghost tcard t-${t.kind}" data-pick="confess" data-id="${t.id}">اكشف «${TRIAL[t.kind]}»</button>`).join('')}`
+      out = `<button class="ghost risk" data-pick="risk">أخاطر</button>${mine.trial.filter((t: {open: boolean}) => !t.open).map((t: {id: number; kind: string}) => `<button class="ghost tcard t-${t.kind}" data-pick="confess" data-id="${t.id}">اكشف «${TRIAL[t.kind]}»</button>`).join('')}`
       return out + info
     }
     if (s.phase === 'choose' && s.choosing === c.me) return mine.trial.filter((t: {open: boolean}) => !t.open).map((t: {id: number; kind: string}) => `<button class="ghost tcard t-${t.kind}" data-pick="reveal" data-id="${t.id}">اكشف «${TRIAL[t.kind]}»</button>`).join('')
     const turn = myTurn(c)
-    const hand = mine.hand.map((h: {id: number; kind: string}) => `<button class="pcard c-${CARD[h.kind].color} ${c.sel.card === h.id ? 'active' : ''}" data-card="${h.id}" data-kind="${h.kind}" title="${CARD[h.kind].name}: ${CARD[h.kind].hint}" ${turn ? '' : 'disabled'}><em>${CARD[h.kind].icon}</em><small>${CARD[h.kind].name}</small></button>`).join('')
+    const hand = mine.hand.map((h: {id: number; kind: string}) => `<button class="pcard c-${CARD[h.kind].color} ${c.sel.card === h.id ? 'active' : ''}" data-card="${h.id}" data-kind="${h.kind}" title="${CARD[h.kind].name}: ${CARD[h.kind].hint}" ${turn ? '' : 'disabled'}><em>${icon(h.kind)}</em><small>${CARD[h.kind].name}</small></button>`).join('')
     const btns = turn ? [
-      !s.played ? '<button class="ghost go" data-pick="draw">🃏 اسحب</button>' : '<button class="ghost go" data-pick="end">✔ أنهِ دورك</button>',
-      (me.char === 'p1' || me.char === 'p9') && !me.used ? `<button class="ghost ${c.sel.ability ? 'on' : ''}" data-pick="ability">${me.char === 'p1' ? '🦅 عين الصقر' : '📿 صفاء النية'}</button>` : '',
+      !s.played ? `<button class="ghost go" data-pick="draw">${icon('card')} اسحب</button>` : '<button class="ghost go" data-pick="end">✔ أنهِ دورك</button>',
+      (me.char === 'p1' || me.char === 'p9') && !me.used ? `<button class="ghost ${c.sel.ability ? 'on' : ''}" data-pick="ability">${me.char === 'p1' ? `${icon('falcon')} عين الصقر` : `${icon('beads')} صفاء النية`}</button>` : '',
       c.sel.kind || c.sel.ability ? '<button class="ghost" data-pick="cancel">إلغاء</button>' : '',
     ].join('') : ''
     return `<div class="hand">${hand || '<span class="muted">يدك فارغة</span>'}</div><div class="acts">${btns}${info}</div>`
@@ -172,7 +173,7 @@ const def: GameDef = {
     if (el.dataset.card) {
       const id = Number(el.dataset.card), was = sel.card
       for (const k of Object.keys(sel)) delete sel[k]
-      if (was !== id && c.state.mine?.hand.some((h: {id: number}) => h.id === id)) { sel.card = id; sel.kind = el.dataset.kind; c.say(`${CARD[sel.kind].icon} ${CARD[sel.kind].hint}`) }
+      if (was !== id && c.state.mine?.hand.some((h: {id: number}) => h.id === id)) { sel.card = id; sel.kind = el.dataset.kind; c.say(`${CARD[sel.kind].name}: ${CARD[sel.kind].hint}`) }
       return c.render()
     }
     const p = el.dataset.pick

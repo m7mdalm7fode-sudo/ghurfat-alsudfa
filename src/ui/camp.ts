@@ -16,7 +16,7 @@ export type Mood = 'night' | 'dark' | 'day'
 type Slot = {x: number; y: number; s: number; view: View}
 type Spark = {x: number; y: number; vx: number; vy: number; life: number; col: string}
 
-const CX = FX, CY = 128, RX = 134, RY = 50
+const CX = FX, CY = 138, RX = 136, RY = 40
 
 /** Slot k of n, counted from the viewer (k=0, front centre) around the ellipse. */
 function ring(k: number, n: number): Slot {
@@ -78,6 +78,35 @@ function buildGround(theme: Theme) {
   g.fillStyle = '#d9a441'; g.fillRect(118, 124, 84, 1); g.fillRect(118, 133, 84, 1)
   for (let x = 121; x < 200; x += 5) g.fillRect(x, 128, 2, 2)
   return c
+}
+
+/**
+ * A floor seat of the majlis under each player: a sadu mattress, a backrest behind him (when he
+ * faces the fire) and a small armrest cushion on each side.
+ */
+function majlisSeat(g: CanvasRenderingContext2D, sl: Slot, id: string) {
+  const s = sl.s, w = Math.round(30 * s), h = Math.max(3, Math.round(5 * s)), x0 = Math.round(sl.x - w / 2), y0 = Math.round(sl.y - h + 2)
+  const hue = ['#8a2232', '#6e2a4a', '#2a4a6e', '#7a4a1a'][(parseInt(id.slice(1)) || 0) % 4]
+  if (sl.view === 'front') {
+    // Backrest (مسند) behind the back, peeking out above the shoulders' sides.
+    const bh = Math.round(13 * s), bw = Math.round(26 * s), bx = Math.round(sl.x - bw / 2), by = Math.round(sl.y - SH * s * .62)
+    g.fillStyle = '#0a0605'; g.fillRect(bx - 1, by - 1, bw + 2, bh + 2)
+    g.fillStyle = hue; g.fillRect(bx, by, bw, bh)
+    g.fillStyle = '#efe2c6'; for (let x = bx + 1; x < bx + bw - 1; x += 3) g.fillRect(x, by + 2, 1, 1)
+    g.fillStyle = '#e8b84a'; g.fillRect(bx, by, bw, 1)
+  }
+  g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(x0 - 1, sl.y + 2, w + 2, 2)
+  g.fillStyle = '#0a0605'; g.fillRect(x0 - 1, y0 - 1, w + 2, h + 2)
+  g.fillStyle = hue; g.fillRect(x0, y0, w, h)
+  g.fillStyle = '#e8b84a'; g.fillRect(x0, y0, w, 1)
+  g.fillStyle = '#efe2c6'; for (let x = x0 + 2; x < x0 + w - 1; x += 4) g.fillRect(x, y0 + Math.min(h - 1, 2), 2, 1)
+  // Armrests (مركى) on both sides.
+  const aw = Math.max(3, Math.round(5 * s)), ah = Math.max(4, Math.round(7 * s))
+  for (const ax of [x0 - aw + 2, x0 + w - 2]) {
+    g.fillStyle = '#0a0605'; g.fillRect(ax - 1, y0 - ah + 2, aw + 2, ah + 1)
+    g.fillStyle = '#5a1a24'; g.fillRect(ax, y0 - ah + 3, aw, ah - 1)
+    g.fillStyle = '#e8b84a'; g.fillRect(ax, y0 - ah + 3, aw, 1)
+  }
 }
 
 export class Camp {
@@ -156,7 +185,7 @@ export class Camp {
       b.classList.toggle('dim', Boolean(s.dim))
       b.classList.toggle('has-cta', Boolean(s.cta))
       b.disabled = !s.cta
-      b.querySelector('.cta')!.textContent = s.cta
+      b.querySelector('.cta')!.innerHTML = s.cta
       b.querySelector('.nm')!.textContent = s.me ? 'أنت' : s.name
       b.querySelector('.tt')!.textContent = s.tag
       b.querySelector<HTMLElement>('.bd')!.innerHTML = s.badges
@@ -203,7 +232,7 @@ export class Camp {
       const sl = this.slots.get(s.id)
       if (!sl) continue
       const sw = Math.round(SW * sl.s), sh = Math.round(SH * sl.s), x0 = Math.round(sl.x - sw / 2), y0 = Math.round(sl.y - sh)
-      w.fillStyle = 'rgba(0,0,0,.45)'; w.fillRect(x0 - 1, sl.y - 2, sw + 2, 3)
+      majlisSeat(w, sl, s.id)
       if (s.turn && s.alive) { w.fillStyle = CHARACTERS[s.char]?.color || '#e8b84a'; w.fillRect(x0 - 3, sl.y - 2, sw + 6, 3) }
       if (!s.alive) {
         const drop = Math.round(sh * .12)

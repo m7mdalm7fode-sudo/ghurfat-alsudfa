@@ -1,10 +1,11 @@
+import {icon} from '../ui/icons'
 import {esc, mountSocial, type GameDef} from './social'
 
 const ROLE: Record<string, {name: string; icon: string; goal: string; color: string}> = {
-  mafia: {name: 'مافيا', icon: '🔪', goal: 'اختاروا ضحية كل ليلة، وتخفّوا بالنهار حتى تصيروا الأغلبية', color: '#ff5a5a'},
-  doctor: {name: 'الطبيب', icon: '💊', goal: 'احمِ لاعبًا كل ليلة من القتل (ليس نفس الشخص ليلتين متتاليتين)', color: '#5fe08e'},
-  detective: {name: 'المحقق', icon: '🔎', goal: 'حقق مع لاعب كل ليلة لتعرف إن كان من المافيا', color: '#6fb3ff'},
-  citizen: {name: 'مواطن', icon: '🏠', goal: 'اكشفوا المافيا بالنقاش والتصويت', color: '#e3d6b8'},
+  mafia: {name: 'مافيا', icon: 'knife', goal: 'اختاروا ضحية كل ليلة، وتخفّوا بالنهار حتى تصيروا الأغلبية', color: '#ff5a5a'},
+  doctor: {name: 'الطبيب', icon: 'help', goal: 'احمِ لاعبًا كل ليلة من القتل (ليس نفس الشخص ليلتين متتاليتين)', color: '#5fe08e'},
+  detective: {name: 'المحقق', icon: 'look', goal: 'حقق مع لاعب كل ليلة لتعرف إن كان من المافيا', color: '#6fb3ff'},
+  citizen: {name: 'مواطن', icon: 'house', goal: 'اكشفوا المافيا بالنقاش والتصويت', color: '#e3d6b8'},
 }
 const TOTAL: Record<string, number> = {night: 45000, dawn: 7000, day: 120000, vote: 45000, verdict: 7000, over: 25000}
 
@@ -33,22 +34,22 @@ const def: GameDef = {
     const role = p.role ? ROLE[p.role] : null
     let cta = '', badges = ''
     const votes = Object.values(s.seats).filter(x => x.vote === id).length
-    if (s.phase === 'vote' || s.phase === 'verdict') badges = votes ? `<i class="vote">🗳️${votes}</i>` : ''
-    if (s.phase === 'day' && p.ready) badges = '<i class="ok">✋</i>'
-    if (s.phase === 'night' && mine.role === 'mafia' && mine.kill) { const n = Object.values(mine.kill).filter(t => t === id).length; if (n) badges = `<i class="bad">🔪${n > 1 ? n : ''}</i>` }
-    if (s.phase === 'night' && mine.role === 'doctor' && mine.save === id) badges = '<i class="ok">💊</i>'
-    if (s.phase === 'night' && mine.role === 'detective' && mine.check === id) badges = '<i>🔎</i>'
+    if (s.phase === 'vote' || s.phase === 'verdict') badges = votes ? `<i class="vote">${icon('vote')}${votes}</i>` : ''
+    if (s.phase === 'day' && p.ready) badges = `<i>${icon('ready')}</i>`
+    if (s.phase === 'night' && mine.role === 'mafia' && mine.kill) { const n = Object.values(mine.kill).filter(t => t === id).length; if (n) badges = `<i class="bad">${icon('knife')}${n > 1 ? n : ''}</i>` }
+    if (s.phase === 'night' && mine.role === 'doctor' && mine.save === id) badges = `<i>${icon('help')}</i>`
+    if (s.phase === 'night' && mine.role === 'detective' && mine.check === id) badges = `<i>${icon('look')}</i>`
     const checked = (mine.checks || []).find((x: {seat: string}) => x.seat === id)
     if (checked && !role) badges += checked.mafia ? '<i class="bad">مافيا!</i>' : '<i class="ok">بريء</i>'
     if (meAlive && alive && p.inGame) {
       if (s.phase === 'night') {
-        if (mine.role === 'mafia' && p.role !== 'mafia') cta = '🔪'
-        if (mine.role === 'doctor' && id !== mine.last_save) cta = '💊'
-        if (mine.role === 'detective' && id !== c.me && !mine.check) cta = '🔎'
+        if (mine.role === 'mafia' && p.role !== 'mafia') cta = icon('knife')
+        if (mine.role === 'doctor' && id !== mine.last_save) cta = icon('help')
+        if (mine.role === 'detective' && id !== c.me && !mine.check) cta = icon('look')
       }
-      if (s.phase === 'vote' && id !== c.me) cta = s.seats[c.me].vote === id ? '✔' : '🗳️'
+      if (s.phase === 'vote' && id !== c.me) cta = s.seats[c.me].vote === id ? icon('ready') : icon('vote')
     }
-    const tag = !p.inGame && s.phase !== 'lobby' ? 'يشاهد' : role && (!alive || s.phase === 'over' || id === c.me || p.role === 'mafia') ? `${role.icon} ${role.name}${!alive ? ' · خرج' : ''}` : !alive ? 'خرج' : ''
+    const tag = !p.inGame && s.phase !== 'lobby' ? 'يشاهد' : role && (!alive || s.phase === 'over' || id === c.me || p.role === 'mafia') ? `${role.name}${!alive ? ' · خرج' : ''}` : !alive ? 'خرج' : ''
     return {char: id, alive, cta, badges, tag, color: role && p.role === 'mafia' && (id === c.me || mine.role === 'mafia' || s.phase === 'over' || !alive) ? '#ff5a5a' : undefined}
   },
 
@@ -56,14 +57,14 @@ const def: GameDef = {
     const s = c.state, mine = s.mine || {}, me = s.seats[c.me], alive = me?.inGame && me.alive
     if (s.phase === 'night') {
       if (!alive) return `الليلة ${s.night} — أنت تشاهد`
-      if (mine.role === 'mafia') return 'اختر ضحية الليلة 🔪'
-      if (mine.role === 'doctor') return mine.save ? 'اخترت من تحميه ✔' : 'اختر من تحميه 💊'
-      if (mine.role === 'detective') return mine.check ? 'حققت الليلة ✔' : 'اختر من تحقق معه 🔎'
+      if (mine.role === 'mafia') return 'اختر ضحية الليلة'
+      if (mine.role === 'doctor') return mine.save ? 'اخترت من تحميه ✔' : 'اختر من تحميه'
+      if (mine.role === 'detective') return mine.check ? 'حققت الليلة ✔' : 'اختر من تحقق معه'
       return `الليلة ${s.night} — نَم وانتظر الفجر`
     }
     if (s.phase === 'dawn') return 'الفجر'
     if (s.phase === 'day') return 'النهار — تناقشوا'
-    if (s.phase === 'vote') return alive ? (me.vote ? 'صوّتّ ✔ — بانتظار البقية' : 'صوّت: من تطرد؟ 🗳️') : 'التصويت'
+    if (s.phase === 'vote') return alive ? (me.vote ? 'صوّتّ ✔ — بانتظار البقية' : 'صوّت: من تطرد؟') : 'التصويت'
     if (s.phase === 'verdict') return 'حُكم المجلس'
     if (s.phase === 'over') return s.winner === 'town' ? 'فاز أهل المدينة 🏆' : 'فازت المافيا 🏆'
     return 'بانتظار اللاعبين'
@@ -73,15 +74,15 @@ const def: GameDef = {
     const mine = c.state.mine, r = mine?.role && ROLE[mine.role]
     if (!r) return '<b>تشاهد</b>'
     const mates = mine.role === 'mafia' ? Object.entries(c.state.seats).filter(([id, p]) => id !== c.me && p.role === 'mafia').map(([, p]) => esc(p.name)) : []
-    return `<b style="color:${r.color}">${r.icon} ${r.name}</b><small>${r.goal}${mates.length ? ` · معك: ${mates.join('، ')}` : ''}</small>`
+    return `<b style="color:${r.color}">${icon(r.icon)} ${r.name}</b><small>${r.goal}${mates.length ? ` · معك: ${mates.join('، ')}` : ''}</small>`
   },
 
   dock(c) {
     const s = c.state, me = s.seats[c.me], alive = me?.inGame && me.alive
-    const counts = s.counts ? `<span class="pill">🔪 ${s.counts.mafia} مافيا · 💊 ${s.counts.doctor} · 🔎 ${s.counts.detective} · 🏠 ${s.counts.citizen}</span>` : ''
+    const counts = s.counts ? `<span class="pill">${icon('knife')} ${s.counts.mafia} مافيا · ${icon('help')} ${s.counts.doctor} · ${icon('look')} ${s.counts.detective} · ${icon('house')} ${s.counts.citizen}</span>` : ''
     let act = ''
-    if (alive && s.phase === 'day') act = `<button class="ghost ${me.ready ? 'on' : ''}" data-pick="ready">✋ ${me.ready ? 'جاهز ✔ (إلغاء)' : 'جاهز للتصويت'}</button>`
-    if (alive && s.phase === 'vote') act = `<button class="ghost ${me.vote === 'skip' ? 'on' : ''}" data-pick="skip">🤐 أمتنع</button>`
+    if (alive && s.phase === 'day') act = `<button class="ghost ${me.ready ? 'on' : ''}" data-pick="ready">${icon('ready')} ${me.ready ? 'جاهز ✔ (إلغاء)' : 'جاهز للتصويت'}</button>`
+    if (alive && s.phase === 'vote') act = `<button class="ghost ${me.vote === 'skip' ? 'on' : ''}" data-pick="skip">أمتنع</button>`
     return `${counts}${act}`
   },
 

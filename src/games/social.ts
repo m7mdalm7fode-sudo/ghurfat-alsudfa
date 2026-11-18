@@ -76,13 +76,14 @@ export function mountSocial(def: GameDef) {
  <div class="frame">
   <div class="stage-host"></div>
   <div class="hudx topbar">
-   <div class="side"><button class="ibtn" data-action="menu" aria-label="القائمة">☰</button><button class="ibtn chat-btn" data-action="chat" aria-label="الدردشة">💬<i class="unread" hidden></i></button><span class="status-dot"></span><span class="role-chip chip"></span></div>
+   <div class="side"><button class="ibtn" data-action="menu" aria-label="القائمة">☰</button><button class="ibtn chat-btn" data-action="chat" aria-label="الدردشة">💬<i class="unread" hidden></i></button><span class="status-dot"></span><button class="role-chip chip" data-action="menu" title="دورك — اضغط للتفاصيل"></button></div>
    <div class="turn chip"><div class="phase">…</div><div class="timer"><i></i></div><div class="notice"></div></div>
   </div>
   <div class="hudx sdock"></div>
   <div class="hudx lobby-card chip" hidden></div>
   <div class="hudx chat-pop chip" hidden><ol class="chat-log"></ol><form class="chat-form"><input maxlength="140" placeholder="اكتب رسالة…" aria-label="رسالة"><button class="ghost" type="submit">إرسال</button></form></div>
   <div class="hudx menu-pop chip" hidden>
+   <div class="role-info"></div>
    <div class="row"><b class="room-label"></b><span class="conn-text">غير متصل</span></div>
    <div class="row"><button class="ghost" data-action="invite">📨 نسخ الدعوة</button><button class="ghost toggle" data-action="sound" aria-pressed="true">🔊 الصوت</button><button class="ghost toggle" data-action="calm" aria-pressed="false">حركة أقل</button><button class="ghost" data-action="leave">🚪 خروج</button></div>
    <ol class="log" aria-label="ما حدث"></ol>
@@ -190,8 +191,10 @@ export function mountSocial(def: GameDef) {
     camp.update(seats, me)
     phase.textContent = def.phaseText(c)
     phase.className = `phase ${/دورك|اختر/.test(phase.textContent) ? 'mine' : ''}`
-    notice.textContent = s.phase === 'lobby' ? '' : s.notice
-    setHTML(roleChip, s.phase === 'lobby' ? '' : def.roleChip(c))
+    notice.textContent = s.phase === 'lobby' || s.phase === 'turn' ? '' : s.notice
+    const role = s.phase === 'lobby' ? '' : def.roleChip(c)
+    setHTML(roleChip, role)
+    setHTML($('.role-info'), role)
     roleChip.hidden = !roleChip.innerHTML
     setHTML(dock, s.phase === 'lobby' ? '' : def.dock(c))
     // Lobby: who is here, invite, and the host's start button.
