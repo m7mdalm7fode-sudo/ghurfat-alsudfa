@@ -35,6 +35,8 @@ export type GameDef = {
   /** Called on every new state (after the previous one) for sounds and effects. */
   changed?(prev: SocialState | null, ctx: Ctx): void
   timerTotal(phase: string): number
+  /** Plain-language line above the dock: what is happening and what to press. `alert` (short) pops a big banner once when it appears. */
+  guide?(ctx: Ctx): {text: string; mine: boolean; alert?: string}
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c]!))
@@ -53,6 +55,7 @@ export function mountSocial(def: GameDef) {
   const root = document.querySelector('#ui')!
   const prefs = readJSON(PREFS_KEY, {calm: matchMedia('(prefers-reduced-motion: reduce)').matches, sound: true})
   let room = resolveRoom(), me = 'spectator', lastSeq = -1, conn: ConnectionState = 'stopped', state: SocialState | null = null
+  let lastAlert = '', bannerTimer = 0
   let endsAt = 0, seenLog = 0, audio: Audio | null = null, pingTimer = 0, unread = 0, chatOpen = false
   const sel: Record<string, any> = {}
   const lineup = def.lineup.map(c => `<figure class="hero-char" style="--c:${CHARACTERS[c].color}"><img class="figure" src="${portraitURL(c)}" alt="${CHARACTERS[c].title}"><figcaption><b>${CHARACTERS[c].title}</b></figcaption></figure>`).join('')
@@ -80,6 +83,7 @@ export function mountSocial(def: GameDef) {
    <div class="turn chip"><div class="phase">…</div><div class="timer"><i></i></div><div class="notice"></div></div>
   </div>
   <div class="hudx sdock"></div>
+  <div class="hudx yourturn" aria-live="assertive"></div>
   <div class="hudx lobby-card chip" hidden></div>
   <div class="hudx chat-pop chip" hidden><ol class="chat-log"></ol><form class="chat-form"><input maxlength="140" placeholder="اكتب رسالة…" aria-label="رسالة"><button class="ghost" type="submit">إرسال</button></form></div>
   <div class="hudx menu-pop chip" hidden>
@@ -196,7 +200,16 @@ export function mountSocial(def: GameDef) {
     setHTML(roleChip, role)
     setHTML($('.role-info'), role)
     roleChip.hidden = !roleChip.innerHTML
-    setHTML(dock, s.phase === 'lobby' ? '' : def.dock(c))
+    const g = s.phase === 'lobby' ? null : def.guide?.(c) || null
+    setHTML(dock, s.phase === 'lobby' ? '' : `${g ? `<div class="guide ${g.mine ? 'mine' : ''}">${g.text}</div>` : ''}${def.dock(c)}`)
+    root.querySelector('.app')!.classList.toggle('aiming', Boolean(sel.kind || sel.ability))
+    const alert = g?.mine && g.alert ? `${s.phase}:${g.alert}` : ''
+    if (alert && alert !== lastAlert) {
+      const b = $('.yourturn'); b.textContent = g!.alert!; b.classList.remove('on'); void b.offsetWidth; b.classList.add('on')
+      clearTimeout(bannerTimer); bannerTimer = window.setTimeout(() => b.classList.remove('on'), 1900)
+      try { navigator.vibrate?.(120) } catch { /* not supported */ }
+    }
+    lastAlert = alert
     // Lobby: who is here, invite, and the host's start button.
     lobby.hidden = s.phase !== 'lobby'
     if (s.phase === 'lobby') {

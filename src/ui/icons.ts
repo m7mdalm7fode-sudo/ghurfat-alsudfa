@@ -8,8 +8,8 @@ const PAL: Record<string, string> = {
   M: '#6e4a2c', d: '#2a1a10', l: '#a8d8f0', o: '#f0682a', v: '#5a3a8a', V: '#3a2460', n: '#7a7a86', h: '#5a3a24', e: '#ffd23a',
 }
 const GRID: Record<string, string[]> = {
-  // Raised accusing finger.
-  accuse: ['............', '.....kk.....', '....kssk....', '....kssk....', '..kkksskkk..', '.kssssssssk.', '.kssssssssk.', 'rksSsssSssk.', 'rkssssssssk.', 'rkSSSSSSSk..', 'r.kkkkkkk...', '............'],
+  // Judge's gavel striking its block: accusation / trial.
+  accuse: ['.....kk.....', '....kCCk....', '...kccCCk...', '..kccmmk....', '.kccmmk.....', 'kCcmmYyk....', 'kCCmkkYyk...', '.kCk..kYyk..', '..k..kkkkkk.', '....kcccccck', '...kmmmmmmmm', '....kkkkkkkk'],
   // Loot bag.
   steal: ['............', '....kkkk....', '...kyyyyk...', '....kYYk....', '...kyyyyk...', '..kyyyyyyk..', '.kyyyYYyyyk.', '.kyyYyyyyyk.', '.kyyyYYyyyk.', '.kyyyyyYyyk.', '..kkkkkkkk..', '............'],
   // Watching eye.

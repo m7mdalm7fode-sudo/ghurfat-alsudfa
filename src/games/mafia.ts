@@ -70,6 +70,23 @@ const def: GameDef = {
     return 'بانتظار اللاعبين'
   },
 
+  guide(c) {
+    const s = c.state, mine = s.mine || {}, me = s.seats[c.me], live = me?.inGame && me.alive
+    if (s.phase === 'over') return {text: 'انتهت اللعبة — ترجعون للمجلس بعد لحظات', mine: false}
+    if (!me?.inGame) return {text: 'أنت تشاهد هذه الجولة — تدخل اللعبة الجاية', mine: false}
+    if (!live) return {text: 'خرجت من اللعبة 👻 — تقدر تشاهد وتتكلم مع الأموات في 💬', mine: false}
+    if (s.phase === 'night') {
+      if (mine.role === 'mafia') return {text: `أنت <b class="bad">مافيا</b>: اضغط ${icon('knife')} على اللي تبي تقتله الليلة. تكلم مع ربعك سرًّا في 💬`, mine: true, alert: 'اختر ضحيتك'}
+      if (mine.role === 'doctor') return mine.save ? {text: 'اخترت من تحميه ✔ — تقدر تغيّره قبل ما يخلص الوقت', mine: false} : {text: `أنت <b class="ok">الطبيب</b>: اضغط ${icon('help')} على لاعب تحميه من القتل الليلة (تقدر تحمي نفسك)`, mine: true, alert: 'احمِ لاعبًا'}
+      if (mine.role === 'detective') return mine.check ? {text: 'حققت الليلة ✔ — الجواب تحت اسمه', mine: false} : {text: `أنت <b class="ok">المحقق</b>: اضغط ${icon('look')} على لاعب وتعرف هل هو مافيا`, mine: true, alert: 'حقق مع لاعب'}
+      return {text: 'أنت مواطن: نم وانتظر الفجر… المافيا يتحركون الحين', mine: false}
+    }
+    if (s.phase === 'dawn') return {text: 'الفجر: شوفوا مين انقتل الليلة', mine: false}
+    if (s.phase === 'day') return me.ready ? {text: 'أنت جاهز ✔ — ننتظر البقية يخلصون نقاش', mine: false} : {text: 'النهار: تناقشوا في 💬 أو بالصوت: مين تشكّون فيه؟ إذا خلصتم اضغط <b>«جاهز للتصويت»</b>', mine: true}
+    if (s.phase === 'vote') return me.vote ? {text: 'صوّتّ ✔ — تقدر تغيّر صوتك قبل ما يخلص الوقت', mine: false} : {text: `التصويت: اضغط ${icon('vote')} على اللي تبي تطرده، أو <b>«أمتنع»</b>`, mine: true, alert: 'صوّت الآن'}
+    return {text: '', mine: false}
+  },
+
   roleChip(c) {
     const mine = c.state.mine, r = mine?.role && ROLE[mine.role]
     if (!r) return '<b>تشاهد</b>'

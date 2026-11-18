@@ -332,7 +332,17 @@ button{cursor:pointer}
 .pcard{width:max(36px,4.8cqw);height:auto;min-height:0;padding:max(5px,.7cqw) 1px max(3px,.4cqw);display:flex;flex-direction:column;align-items:center;gap:max(2px,.3cqw)}
 .pcard em{display:block;line-height:0}
 .pcard em .pi{width:max(20px,2.9cqw);height:max(20px,2.9cqw)}
-.pcard small{display:block;font-size:max(9px,1.05cqw);line-height:1.15;white-space:nowrap}
+.pcard small{display:block;font-size:max(9px,1.05cqw);line-height:1.15;white-space:normal;max-width:100%}
 .pcard.active{transform:translateY(-4px)}
 /* Your own name sits above your head so the hand never hides it. */
 .camp .seat.front .plate{bottom:100%;transform:translate(-50%,-4px)}
+/* Plain-language guide above the dock + the big "your turn" banner. */
+.sdock .guide{flex:1 0 100%;order:-1;align-self:center;margin:0 auto;max-width:min(70cqw,640px);text-align:center;font-size:max(12px,1.55cqw);line-height:1.5;padding:max(5px,.6cqw) max(10px,1.4cqw);background:rgba(14,9,6,.88);color:var(--ink);box-shadow:0 0 0 2px var(--edge),0 0 0 4px #000;pointer-events:none}
+.sdock .guide .pi{width:1.35em;height:1.35em;vertical-align:-.3em}
+.sdock .guide.mine{background:#3a2610;color:#fff4d6;box-shadow:0 0 0 2px var(--gold),0 0 0 4px #000;animation:guidepulse 1.4s steps(2) infinite}
+@keyframes guidepulse{50%{box-shadow:0 0 0 3px #fff0a8,0 0 0 5px #000}}
+.yourturn{left:50%;top:40%;z-index:950;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;font-family:var(--display);font-weight:700;font-size:max(28px,6cqw);color:#2a1408;background:var(--gold);padding:.3em 1em;box-shadow:0 0 0 4px #000,0 0 0 8px var(--gold),0 0 0 11px #000;white-space:nowrap;transition:opacity .15s,transform .2s steps(3)}
+.yourturn.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.calm .yourturn{transition:none}
+.camp .seat.turn .tt{display:block;color:var(--gold);font-weight:800}
+.app.aiming .camp .seat:not(.has-cta):not(.me){opacity:.45}

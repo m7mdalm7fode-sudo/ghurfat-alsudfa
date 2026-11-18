@@ -102,7 +102,7 @@ const def: GameDef = {
     const ch = CHARACTERS[p.char]
     const team = p.team === 'traitor' ? ' · خائن' : ''
     return {char: p.char, cta, turn: s.phase === 'turn' && s.turn === id, badges: `<span class="tcs">${trial}</span><span class="mk">${marks}${p.hand ? `<i class="hand">${icon('card', 'أوراق في يده')}${p.hand}</i>` : ''}</span>`,
-      tag: `${ch?.title || ''}${team}${!alive(p) ? ' · مات' : ''}`, color: p.team === 'traitor' ? '#ff5a5a' : undefined}
+      tag: s.phase === 'turn' && s.turn === id && alive(p) ? (id === c.me ? '▶ دورك' : '▶ يلعب الآن') : `${ch?.title || ''}${team}${!alive(p) ? ' · مات' : ''}`, color: p.team === 'traitor' ? '#ff5a5a' : undefined}
   },
 
   phaseText(c) {
@@ -123,6 +123,40 @@ const def: GameDef = {
       case 'over': return s.winner === 'village' ? 'فاز أهل الديرة 🏆' : 'فاز الخونة 🏆'
     }
     return '…'
+  },
+
+  guide(c) {
+    const s = c.state, mine = s.mine, me = s.seats[c.me], live = alive(me), name = (id: string) => `<b>${esc(s.seats[id]?.name || '')}</b>`
+    if (s.phase === 'over') return {text: 'انتهت اللعبة — ترجعون للمجلس بعد لحظات', mine: false}
+    if (!mine || !me?.inGame) return {text: 'أنت تشاهد هذه الجولة — تدخل اللعبة الجاية', mine: false}
+    if (!live) return {text: 'خرجت من اللعبة 👻 — تقدر تشاهد وتتكلم مع الأموات في 💬', mine: false}
+    switch (s.phase) {
+      case 'dawn': return mine.team === 'traitor' && !me.done
+        ? {text: `أنت <b class="bad">خائن</b>: اضغط ${icon('cat')} فوق اللاعب اللي تبي تحط القطة السوداء قدامه — الدور يبدأ منه`, mine: true, alert: 'ضع القطة السوداء'}
+        : {text: 'الفجر: الخونة يتعارفون ويحطون القطة السوداء… انتظر', mine: false}
+      case 'turn': {
+        if (s.turn !== c.me) return {text: `الدور الحين عند ${name(s.turn)} — انتظر دورك، وتابع وش يلعب`, mine: false}
+        if (c.sel.ability) return {text: `${icon('falcon')} عين الصقر: اضغط على لاعب وتشوف وحدة من أوراقه المخفية سرًّا`, mine: true}
+        if (c.sel.kind === 'camel') return {text: c.sel.from ? `${icon('camel')} الحين اضغط على اللاعب اللي <b>تنقل له</b> كل شي كان قدام ${name(c.sel.from)}` : `${icon('camel')} ناقة: اضغط أولًا على اللاعب اللي <b>تاخذ من قدامه</b>`, mine: true}
+        if (c.sel.kind) return {text: `${icon(c.sel.kind)} <b>${CARD[c.sel.kind].name}</b>: ${CARD[c.sel.kind].hint}. اضغط على اللاعب اللي فوقه نفس الأيقونة`, mine: true}
+        return s.played
+          ? {text: 'تقدر تلعب ورقة ثانية من يدك، أو اضغط <b>«أنهِ دورك»</b>', mine: true}
+          : {text: `<b>دورك!</b> اختر واحد: اضغط ورقة من يدك وبعدين اضغط على لاعب — أو اضغط <b>«اسحب»</b> وتاخذ ${me.char === 'p3' ? '٣ أوراق' : 'ورقتين'} وينتهي دورك`, mine: true, alert: 'دورك!'}
+      }
+      case 'choose': return s.choosing === c.me
+        ? {text: 'اكتملت الاتهامات عليك: اختر تحت أي ورقة من أوراق محاكمتك تنكشف للكل', mine: true, alert: 'اختر ورقة تنكشف'}
+        : {text: `اكتملت الاتهامات على ${name(s.choosing)} — بتنكشف وحدة من أوراقه`, mine: false}
+      case 'conspiracy': return {text: '👁️ المؤامرة: كل لاعب ياخذ ورقة محاكمة مخفية من جاره — ممكن تصير خائن!', mine: false}
+      case 'kill':
+        if (mine.team === 'traitor' && !mine.votes?.[c.me]) return {text: `الليل الأسود: اضغط ${icon('weapon')} على اللاعب اللي تبون تغتالونه. تكلم مع رفاقك سرًّا في 💬`, mine: true, alert: 'اختر من تغتال'}
+        if (mine.can_guard && !mine.guard) return {text: `أنت <b>الشايب</b>: اضغط ${icon('shield')} على لاعب تحميه من الاغتيال الليلة`, mine: true, alert: 'احمِ لاعبًا'}
+        return {text: 'الليل الأسود: الخونة يختارون ضحيتهم… انتظر', mine: false}
+      case 'confess':
+        if (mine.exempt || mine.confess) return {text: 'تم ✔ — ننتظر البقية يختارون', mine: false}
+        return {text: 'قرّر: <b>«أخاطر»</b> وممكن تنقتل الليلة، أو <b>اكشف ورقة محاكمة</b> للكل وتنجو أكيد', mine: true, alert: 'تخاطر أو تكشف؟'}
+      case 'reveal': return {text: 'طلع الصبح — شوفوا وش صار بالليل', mine: false}
+    }
+    return {text: '', mine: false}
   },
 
   roleChip(c) {
@@ -173,7 +207,7 @@ const def: GameDef = {
     if (el.dataset.card) {
       const id = Number(el.dataset.card), was = sel.card
       for (const k of Object.keys(sel)) delete sel[k]
-      if (was !== id && c.state.mine?.hand.some((h: {id: number}) => h.id === id)) { sel.card = id; sel.kind = el.dataset.kind; c.say(`${CARD[sel.kind].name}: ${CARD[sel.kind].hint}`) }
+      if (was !== id && c.state.mine?.hand.some((h: {id: number}) => h.id === id)) { sel.card = id; sel.kind = el.dataset.kind }
       return c.render()
     }
     const p = el.dataset.pick
