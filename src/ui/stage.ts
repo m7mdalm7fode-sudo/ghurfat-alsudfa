@@ -48,26 +48,18 @@ function buildSky() {
     img.data.set([...pal[i], 255], (y * W + x) * 4)
   }
   g.putImageData(img, 0, 0)
-  // Low orange moon with a soft halo, half veiled by haze.
-  for (let y = -14; y <= 14; y++) for (let x = -14; x <= 14; x++) {
-    const r = Math.hypot(x, y)
-    if (r <= 7) { g.fillStyle = (x * 3 + y * 5) % 7 === 0 || (r > 4 && (x + y) % 4 === 0) ? '#a8582c' : '#c4703a'; g.fillRect(70 + x, 52 + y, 1, 1) }
-    else if (r <= 14 && dither(x + 70, y + 52) < (14 - r) / 18) { g.fillStyle = '#3a2216'; g.fillRect(70 + x, 52 + y, 1, 1) }
+  // High crescent moon, slightly hazed.
+  for (let y = -6; y <= 6; y++) for (let x = -6; x <= 6; x++) {
+    if (x * x + y * y <= 30 && (x + 3) * (x + 3) + (y + 1) * (y + 1) > 20) { g.fillStyle = y < -2 ? '#efe2c2' : '#d8c8a2'; g.fillRect(226 + x, 30 + y, 1, 1) }
   }
+  // Far flat-topped jebel range with stepped cliffs, then low dunes.
   for (let x = 0; x < W; x++) {
-    const far = Math.round(62 + 3 * Math.sin(x / 41) + 2 * Math.sin(x / 13 + 1))
-    g.fillStyle = '#110b0a'; g.fillRect(x, far, 1, H - far)
+    const m = x < 150 ? (x > 18 && x < 64 ? 49 + (x < 24 ? 24 - x : 0) + (x > 58 ? (x - 58) * 2 : 0)
+      : x > 80 && x < 132 ? 54 + (x < 86 ? (86 - x) * 2 : 0) + (x > 126 ? (x - 126) * 2 : 0) : 62) : 64 + Math.round(2 * Math.sin(x / 17))
+    g.fillStyle = '#0f0a0a'; g.fillRect(x, Math.min(m, 66), 1, H)
+    if (m < 62) { g.fillStyle = '#1a1210'; g.fillRect(x, m, 1, 1); if (x % 9 === 0) { g.fillStyle = '#140d0b'; g.fillRect(x, m + 4, 1, 6) } }
     const near = Math.round(68 + 2 * Math.sin(x / 29 + 2) + Math.sin(x / 7))
     g.fillStyle = '#160e0b'; g.fillRect(x, near, 1, H - near)
-  }
-  // Acacia (samur) tree silhouette in front of the moon.
-  seed = 5
-  g.fillStyle = '#090605'
-  g.fillRect(56, 50, 2, 20); g.fillRect(55, 66, 4, 4); g.fillRect(52, 54, 4, 1); g.fillRect(58, 52, 5, 1)
-  for (let k = 0; k < 520; k++) {
-    const a = rnd() * Math.PI * 2, rr = Math.sqrt(rnd())
-    const x = Math.round(57 + Math.cos(a) * rr * 17), y = Math.round(46 + Math.sin(a) * rr * 7 - (1 - rr) * 2)
-    g.fillRect(x, y, 1, 1)
   }
   return c
 }
@@ -88,7 +80,7 @@ function buildGround() {
   g.fillStyle = 'rgb(88,62,38)'
   for (let k = 0; k < 34; k++) { const x = Math.floor(rnd() * W), y = HORIZON + 4 + Math.floor(rnd() * (H - HORIZON - 4)); g.fillRect(x, y, 5 + Math.floor(rnd() * 9), 1) }
 
-  pickup(g, 50, 47)
+  pickup(g, 36, 48)
 
   tent(g)
   // Majlis rug in front of the tent.
@@ -114,60 +106,44 @@ function buildGround() {
 }
 
 /**
- * Double-cab pickup in side view (generic, no brand), facing left: long hood, four doors,
- * short bed, wheel arches with hubcaps, mirror, crease line. Top-left of the roof at (ox, oy).
+ * Old single-cab pickup facing right (original design, no brand): round headlight, short cab,
+ * bed with wooden side rails carrying a rolled rug and a water jerrycan. Bed's top-left at (ox, oy).
  */
 function pickup(g: CanvasRenderingContext2D, ox: number, oy: number) {
-  const L = 132, base = '#b98a5a', light = '#d6ab76', mid = '#a0754a', dark = '#7d5636', deep = '#5a3c24'
-  const glass = '#15100e', glassHi = '#2e2621'
+  const L = 118, base = '#cfc6b2', light = '#e6dfcd', mid = '#aaa08a', dark = '#837a66', deep = '#5c5446', rust = '#8a5a3a'
   const px = (x: number, y: number, w: number, h: number, c: string) => { g.fillStyle = c; g.fillRect(ox + x, oy + y, w, h) }
-  // Body silhouette column by column: hood → windshield → roof → cab back → bed.
-  const top = (x: number) => x < 32 ? 17 - Math.round(x / 16) : x < 44 ? Math.round(15 - (x - 32) * 1.15) : x < 90 ? (x < 46 || x > 87 ? 2 : 1) : x < 92 ? 2 : 15
+  // Profile: bed (0–60), cab with roof (62–90), windshield slope (90–98), hood (98–118).
+  const top = (x: number) => x < 61 ? 16 : x < 63 ? 4 : x < 89 ? 3 : x < 98 ? Math.round(3 + (x - 89) * 1.4) : x < 116 ? 16 + Math.round((x - 98) / 9) : 18
   for (let x = 0; x < L; x++) {
     const t = top(x)
-    for (let y = t; y <= 34; y++) {
-      let c = base
-      if (y === t) c = light
-      else if (y <= t + 1 && x < 92) c = light
-      else if (y === 23) c = deep
-      else if (y >= 29 && y <= 31) c = mid
-      else if (y >= 32) c = dark
-      px(x, y, 1, 1, c)
-    }
+    for (let y = t; y <= 34; y++) px(x, y, 1, 1, y === t ? light : y === 24 ? mid : y >= 31 ? dark : base)
   }
-  // Nose and tail.
-  px(0, 18, 1, 13, dark); px(L - 1, 15, 1, 18, dark)
-  px(-2, 27, 4, 4, '#8a8478'); px(-2, 27, 4, 1, '#b8b2a4')
-  px(0, 19, 3, 3, '#f0dca0'); px(L - 2, 17, 2, 4, '#9a2a22')
-  // Windows (two side windows) with a slanted A-pillar.
-  for (let y = 4; y <= 14; y++) {
-    const a = 45 - Math.round((y - 4) * .9)
-    px(a, y, 64 - a, 1, glass)
-    px(68, y, 20, 1, glass)
-  }
-  px(47, 5, 8, 1, glassHi); px(70, 5, 7, 1, glassHi)
-  px(64, 3, 4, 13, base); px(65, 3, 1, 13, mid)
-  // Door seams and handles.
-  for (const x of [42, 66, 90]) px(x, 15, 1, 16, deep)
-  px(57, 18, 4, 1, deep); px(82, 18, 4, 1, deep)
-  // Mirror.
-  px(38, 11, 4, 3, dark); px(38, 11, 4, 1, mid)
-  // Bed rail.
-  px(92, 15, L - 93, 1, mid)
+  px(L - 1, 18, 1, 15, dark); px(0, 16, 1, 17, dark)
+  // Rust spots and a faded stripe.
+  for (const [x, y] of [[8, 28], [9, 29], [44, 30], [70, 29], [71, 30], [106, 27]]) px(x, y, 2, 1, rust)
+  px(2, 21, 56, 1, '#b8ae98')
+  // Cab window and door.
+  for (let y = 5; y <= 14; y++) px(66, y, Math.min(24, 23 + Math.round((y - 5) * .9)) - 0, 1, '#15100e')
+  px(68, 6, 9, 1, '#2e2621'); px(64, 15, 1, 16, deep); px(91, 15, 1, 16, deep); px(68, 18, 4, 1, deep)
+  // Front: grille, round headlight, bumper. Rear: tail light, bumper.
+  px(L - 3, 20, 3, 8, '#6a6658'); px(L - 4, 19, 3, 3, '#f0dca0'); px(L - 4, 29, 6, 3, '#9a968a')
+  px(0, 18, 2, 4, '#9a2a22'); px(-2, 29, 5, 3, '#9a968a')
+  // Bed rails: wooden slats.
+  px(1, 2, 58, 2, '#7a5634'); px(1, 9, 58, 1, '#6b4a2c')
+  for (let x = 1; x < 60; x += 7) px(x, 2, 2, 14, '#6b4a2c')
+  // Cargo between the slats: a rolled red rug and a green water jerrycan.
+  for (let x = 10; x < 34; x++) { px(x, 10, 1, 6, x % 6 < 1 ? '#e3a94a' : '#8a2232'); px(x, 10, 1, 1, '#a83a40') }
+  px(40, 5, 8, 11, '#3f6a3a'); px(40, 5, 8, 1, '#5e8a54'); px(42, 3, 3, 2, '#2c4a28')
   // Wheel arches and wheels.
-  for (const cx of [22, 110]) {
+  for (const cx of [20, 100]) {
     const cy = 35
-    for (let y = -12; y <= 0; y++) for (let x = -12; x <= 12; x++) if (x * x + y * y <= 144) px(cx + x, cy + y, 1, 1, '#100a08')
-    for (let y = -12; y <= 0; y++) for (let x = -12; x <= 12; x++) { const r = x * x + y * y; if (r <= 144 && r > 121) px(cx + x, cy + y, 1, 1, deep) }
-    disc(g, ox + cx, oy + cy, 10, '#1a1210')
-    disc(g, ox + cx, oy + cy, 7, '#2a201a')
-    disc(g, ox + cx, oy + cy, 5, '#7a6a58')
-    disc(g, ox + cx, oy + cy, 3, '#5a4c3e')
+    for (let y = -11; y <= 0; y++) for (let x = -11; x <= 11; x++) { const r = x * x + y * y; if (r <= 121) px(cx + x, cy + y, 1, 1, r > 100 ? deep : '#100a08') }
+    disc(g, ox + cx, oy + cy, 9, '#1a1210')
+    disc(g, ox + cx, oy + cy, 5, '#cfc6b2')
+    disc(g, ox + cx, oy + cy, 3, '#837a66')
     disc(g, ox + cx, oy + cy, 1, '#2a201a')
-    px(cx - 3, 31, 3, 1, '#a89884')
   }
-  // Long shadow under the truck.
-  g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(ox + 4, oy + 45, L - 8, 2)
+  g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(ox + 4, oy + 44, L - 8, 2)
 }
 
 /** Brass dallah: crown lid, long crescent beak spout, side handle. Base centre at (cx, by). */
