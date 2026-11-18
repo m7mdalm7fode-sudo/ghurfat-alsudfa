@@ -327,3 +327,12 @@ button{cursor:pointer}
 .pcard{background:linear-gradient(var(--cc,#5c3d22) 0 18%,#efe0bc 18%);color:#2a1408;box-shadow:0 0 0 2px #000,inset 0 0 0 2px var(--cc,#5c3d22);padding-top:6%}
 .pcard small{font-weight:800}
 .pcard em .pi{width:max(22px,3.4cqw);height:max(22px,3.4cqw)}
+/* Hand: compact cards whose label always shows; many cards wrap upward instead of covering you. */
+.sdock .hand{max-width:48cqw;flex-wrap:wrap-reverse;justify-content:flex-start}
+.pcard{width:max(36px,4.8cqw);height:auto;min-height:0;padding:max(5px,.7cqw) 1px max(3px,.4cqw);display:flex;flex-direction:column;align-items:center;gap:max(2px,.3cqw)}
+.pcard em{display:block;line-height:0}
+.pcard em .pi{width:max(20px,2.9cqw);height:max(20px,2.9cqw)}
+.pcard small{display:block;font-size:max(9px,1.05cqw);line-height:1.15;white-space:nowrap}
+.pcard.active{transform:translateY(-4px)}
+/* Your own name sits above your head so the hand never hides it. */
+.camp .seat.front .plate{bottom:100%;transform:translate(-50%,-4px)}
