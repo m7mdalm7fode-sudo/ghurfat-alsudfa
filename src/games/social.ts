@@ -134,6 +134,7 @@ export function mountSocial(def: GameDef) {
       if (!m || m.marker !== BUILD || m.room !== room) return
       connection.confirmActivity()
       if (m.type === 'welcome' && m.game === def.id) { me = m.role; lastSeq = -1; storeResume(`${def.id}_${room}`, connection.endpoint, m.resume_token); sfx('join'); if (me === 'spectator') say('المجلس ممتلئ — أنت تشاهد') }
+      else if (m.type === 'welcome') { connection.stop(); conn = 'unavailable'; showConn(); $('.overlay-text').textContent = 'خادم اللعب لم يُحدَّث بعد لهذه اللعبة — جرّب بعد قليل.' }
       else if (m.type === 'state' && m.game === def.id && m.seq > lastSeq) { lastSeq = m.seq; onState(m) }
       else if (m.type === 'chat') onChat(m)
       else if (m.type === 'error') { say(ERRORS[m.code] || 'لا يمكن ذلك'); sfx('ui') }
