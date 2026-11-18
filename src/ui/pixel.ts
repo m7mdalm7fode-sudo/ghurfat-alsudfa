@@ -1,4 +1,4 @@
-import type {Seat} from '../net/protocol'
+type Seat = string
 import {CHARACTERS} from './characters'
 
 /**
@@ -103,6 +103,8 @@ export function sprite(seat: Seat, view: View, frame: 0 | 1, out = false): HTMLC
   if (c.prop === 'lantern') { px(0, 24, 4, 5, '#c87a3a'); px(1, 25, 2, 3, '#ffd27a') }
   if (c.prop === 'dallah') { px(20, 24, 4, 6, '#d9a441'); px(21, 23, 2, 1, '#b7832e'); px(19, 25, 1, 1, '#d9a441') }
   if (c.prop === 'misbaha' && view === 'front') { px(11, 20, 1, 4, '#e8b84a'); px(12, 23, 1, 1, '#e8b84a') }
+  if (c.prop === 'falcon') { px(17, 8 + d, 4, 4, '#7a5636'); px(18, 7 + d, 2, 1, '#9a7650'); px(20, 8 + d, 1, 1, '#e8b84a'); px(17, 12 + d, 4, 1, '#3a2a1a') }
+  if (c.prop === 'pouch' && view === 'front') { px(15, 19, 4, 4, '#8a5a2a'); px(15, 19, 4, 1, '#b07a3a'); px(16, 18, 2, 1, '#e8b84a') }
   if (c.prop === 'khanjar' && view === 'front') { px(9, 16 + d, 6, 1, '#7a5230'); px(11, 17 + d, 2, 3, '#d7d2c4'); px(11, 16 + d, 1, 1, '#e8b84a') }
 
   if (out) {

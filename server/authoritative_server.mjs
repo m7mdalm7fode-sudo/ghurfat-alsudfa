@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Authoritative room server for «آخر فنجال»: a match of three rounds around one rifle loaded with
 // live and blank bullets. Each round is harder and hands out more items; the round winner opens the next.
-import {createServer} from 'node:http'; import {randomBytes} from 'node:crypto'; import {WebSocketServer,WebSocket} from 'ws'
+import {createServer} from 'node:http'; import {randomBytes} from 'node:crypto'; import {WebSocketServer,WebSocket} from 'ws'; import {MafiaRoom} from './mafia.mjs'; import {NightRoom} from './night.mjs'
 const MARKER='chamber6-v3', HOST=process.env.HOST||'127.0.0.1', PORT=Number(process.env.PORT||8787)
 const SEATS=['p1','p2','p3','p4','p5','p6'], MAX_ROOMS=128, MAX_SPECTATORS=8
 const COUNTDOWN_MS=3500, ROUND_END_MS=Number(process.env.ROUND_END_MS||6000), MATCH_END_MS=Number(process.env.MATCH_END_MS||10000)
@@ -100,9 +100,10 @@ class Room{
  }
 }
 const NAMES={scope:'المنظار',dallah:'الدلّة',rope:'الحبل',bukhoor:'البخور',double:'طلقة الدبل',steal:'السرقة',eject:'حذف الطلقة',flip:'التبديل'}
-function room(id){if(!rooms.has(id))rooms.set(id,new Room(id));return rooms.get(id)}
+const GAMES={fanjal:Room,mafia:MafiaRoom,night:NightRoom}
+function room(game,id){const key=`${game}:${id}`;if(!rooms.has(key))rooms.set(key,new GAMES[game](id));return rooms.get(key)}
 const http=createServer((req,res)=>{if(req.url==='/healthz'){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,marker:MARKER,rooms:rooms.size}));return}res.writeHead(404);res.end('Not found')})
-const wss=new WebSocketServer({noServer:true,maxPayload:4096});http.on('upgrade',(req,socket,head)=>{let u;try{u=new URL(req.url,'http://localhost')}catch{return socket.destroy()}const origin=req.headers.origin;const same=origin&&(()=>{try{return new URL(origin).host===req.headers.host}catch{return false}})();if(origin&&!same&&!allowed.has(origin))return socket.destroy();if(u.pathname!=='/ws')return socket.destroy();const id=code(u.searchParams.get('room'));if(!id||(!rooms.has(id)&&rooms.size>=MAX_ROOMS))return socket.destroy();wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,u,id))})
-wss.on('connection',(ws,u,id)=>{const r=room(id);r.claim(ws,u.searchParams.get('resume')||'',cleanName(u.searchParams.get('name')));ws.on('message',raw=>{try{const m=JSON.parse(raw);if(m.type==='action'&&ws.role!=='spectator'){r.last=Date.now();r.action(ws.role,m)}else if(m.type==='ping')send(ws,{type:'pong',marker:MARKER,room:id,t:m.t})}catch{send(ws,{type:'error',marker:MARKER,room:id,code:'invalid_message'})}});ws.on('close',()=>r.release(ws));ws.on('error',()=>r.release(ws))})
+const wss=new WebSocketServer({noServer:true,maxPayload:4096});http.on('upgrade',(req,socket,head)=>{let u;try{u=new URL(req.url,'http://localhost')}catch{return socket.destroy()}const origin=req.headers.origin;const same=origin&&(()=>{try{return new URL(origin).host===req.headers.host}catch{return false}})();if(origin&&!same&&!allowed.has(origin))return socket.destroy();if(u.pathname!=='/ws')return socket.destroy();const id=code(u.searchParams.get('room')),game=GAMES[u.searchParams.get('game')]?u.searchParams.get('game'):'fanjal';if(!id||(!rooms.has(`${game}:${id}`)&&rooms.size>=MAX_ROOMS))return socket.destroy();wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,u,id,game))})
+wss.on('connection',(ws,u,id,game)=>{const r=room(game,id);r.claim(ws,u.searchParams.get('resume')||'',cleanName(u.searchParams.get('name')));ws.on('message',raw=>{try{const m=JSON.parse(raw);if(m.type==='ping')send(ws,{type:'pong',marker:MARKER,room:id,t:m.t});else if(r.message)r.message(ws,m);else if(m.type==='action'&&ws.role!=='spectator'){r.last=Date.now();r.action(ws.role,m)}}catch{send(ws,{type:'error',marker:MARKER,room:id,code:'invalid_message'})}});ws.on('close',()=>r.release(ws));ws.on('error',()=>r.release(ws))})
 setInterval(()=>{const now=Date.now();for(const [id,r] of rooms){r.tick();if(!r.connected().length&&!r.watchers.size&&now-r.last>IDLE_MS)rooms.delete(id)}},200).unref()
 http.listen(PORT,HOST,()=>console.log(JSON.stringify({marker:MARKER,status:'listening',host:HOST,port:http.address().port})))

@@ -7,9 +7,9 @@ import {silhouette, sprite, SW, SH, type View} from './pixel'
  * only real light: the world layer is re-lit every frame with a dithered, quantised falloff.
  * The ring of seats is rotated so the local player always sits in front, seen from behind.
  */
-const W = 320, H = 200, FX = 160, FY = 112, HORIZON = 72, FPS = 24
+export const W = 320, H = 200, FX = 160, FY = 112, HORIZON = 72, FPS = 24
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + .5) / 16)
-const dither = (x: number, y: number) => BAYER[(y & 3) * 4 + (x & 3)]
+export const dither = (x: number, y: number) => BAYER[(y & 3) * 4 + (x & 3)]
 
 type Slot = {x: number; y: number; s: number; view: View}
 /** Slot k = seats counted from the viewer around the fire; k=0 is the viewer. */
@@ -24,10 +24,10 @@ const SLOTS: Slot[] = [
 const slotFor = (k: number): Slot => SLOTS[k]
 
 let seed = 11
-const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647
-const wave = (a: number) => (Math.sin(a) * .5 + .5) * .6 + (Math.sin(a * 2.3 + 1) * .5 + .5) * .4
+export const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+export const wave = (a: number) => (Math.sin(a) * .5 + .5) * .6 + (Math.sin(a * 2.3 + 1) * .5 + .5) * .4
 
-function canvas(w = W, h = H) {
+export function canvas(w = W, h = H) {
   const c = document.createElement('canvas')
   c.width = w
   c.height = h
@@ -37,10 +37,10 @@ function canvas(w = W, h = H) {
 }
 
 /** Night sky, crescent moon and dunes: never lit by the fire. */
-function buildSky() {
+export function buildSky(dawn = false) {
   const {c, g} = canvas()
   // Dark, overcast night with a warm glow low on the horizon.
-  const pal = [[8, 8, 12], [12, 11, 15], [17, 14, 17], [26, 18, 17], [40, 24, 18]]
+  const pal = dawn ? [[46, 52, 78], [74, 70, 92], [118, 92, 98], [176, 118, 92], [222, 156, 98]] : [[8, 8, 12], [12, 11, 15], [17, 14, 17], [26, 18, 17], [40, 24, 18]]
   const img = g.createImageData(W, H)
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const cloud = Math.sin(x / 23 + y / 9) * .35 + Math.sin(x / 11 - y / 5) * .2
@@ -49,7 +49,7 @@ function buildSky() {
   }
   g.putImageData(img, 0, 0)
   // High crescent moon, slightly hazed.
-  for (let y = -6; y <= 6; y++) for (let x = -6; x <= 6; x++) {
+  if (!dawn) for (let y = -6; y <= 6; y++) for (let x = -6; x <= 6; x++) {
     if (x * x + y * y <= 30 && (x + 3) * (x + 3) + (y + 1) * (y + 1) > 20) { g.fillStyle = y < -2 ? '#efe2c2' : '#d8c8a2'; g.fillRect(226 + x, 30 + y, 1, 1) }
   }
   // Far flat-topped jebel range with stepped cliffs, then low dunes.
@@ -64,7 +64,7 @@ function buildSky() {
   return c
 }
 
-function disc(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, col: string) {
+export function disc(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, col: string) {
   g.fillStyle = col
   for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(r * r - y * y)); g.fillRect(cx - w, cy + y, w * 2 + 1, 1) }
 }
@@ -109,7 +109,7 @@ function buildGround() {
  * Old single-cab pickup facing right (original design, no brand): round headlight, short cab,
  * bed with wooden side rails carrying a rolled rug and a water jerrycan. Bed's top-left at (ox, oy).
  */
-function pickup(g: CanvasRenderingContext2D, ox: number, oy: number) {
+export function pickup(g: CanvasRenderingContext2D, ox: number, oy: number) {
   const L = 118, base = '#cfc6b2', light = '#e6dfcd', mid = '#aaa08a', dark = '#837a66', deep = '#5c5446', rust = '#8a5a3a'
   const px = (x: number, y: number, w: number, h: number, c: string) => { g.fillStyle = c; g.fillRect(ox + x, oy + y, w, h) }
   // Profile: bed (0–60), cab with roof (62–90), windshield slope (90–98), hood (98–118).
@@ -147,7 +147,7 @@ function pickup(g: CanvasRenderingContext2D, ox: number, oy: number) {
 }
 
 /** Brass dallah: crown lid, long crescent beak spout, side handle. Base centre at (cx, by). */
-function dallah(g: CanvasRenderingContext2D, cx: number, by: number) {
+export function dallah(g: CanvasRenderingContext2D, cx: number, by: number) {
   const gold = '#e0aa45', hi = '#f6d27c', mid = '#b8822c', dark = '#7a5418'
   const rows = [1, 1, 3, 5, 5, 3, 3, 4, 8, 9, 10, 11, 11, 11, 11, 10, 10, 9, 8, 10, 12]
   const top = by - rows.length
@@ -167,7 +167,7 @@ function dallah(g: CanvasRenderingContext2D, cx: number, by: number) {
 }
 
 /** Bayt al-sha'r: striped goat-hair roof on three poles, sadu band, open front with cushions. */
-function tent(g: CanvasRenderingContext2D) {
+export function tent(g: CanvasRenderingContext2D) {
   const L = 212, R = 312, poles = [230, 262, 294]
   for (let x = L; x <= R; x++) {
     // Roof sags between pole peaks.
