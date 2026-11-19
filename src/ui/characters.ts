@@ -1,7 +1,7 @@
 /**
  * Six original Arab male characters (drawn as pixel art in `pixel.ts`). The face is always an
  * empty shadow inside the headwear: no eyes, mouth or any facial feature. «آخر فنجال» uses the
- * first six (one per seat); «المافيا» and «الليل الأسود» use up to twelve.
+ * first six (one per seat); «الذيابة» and «القطوة السوداء» use up to twelve.
  */
 type Headwear = 'shemagh' | 'ghutra' | 'emamah' | 'litham' | 'massar'
 type Prop = 'misbaha' | 'sword' | 'staff' | 'lantern' | 'dallah' | 'khanjar' | 'falcon' | 'pouch'

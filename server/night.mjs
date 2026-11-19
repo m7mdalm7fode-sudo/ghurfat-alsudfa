@@ -1,4 +1,4 @@
-// «الليل الأسود»: an online adaptation of the booklet's rules with our own cards and characters.
+// «القطوة السوداء»: an online adaptation of the booklet's rules with our own cards and characters.
 // Hidden trial cards decide the teams (مسالم / خائن / الشايب). On your turn you draw two cards or
 // play cards; seven accusations reveal a trial card. Black cards stop everything: «المؤامرة» passes
 // trial cards to the left, «الليل» lets the traitors assassinate. Villagers win when every «خائن»

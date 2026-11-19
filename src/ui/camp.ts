@@ -11,7 +11,7 @@ export type CampSeat = {
   id: string; char: string; name: string; present: boolean; alive: boolean; me: boolean; turn: boolean
   cta: string; tag: string; badges: string; color?: string; dim?: boolean
 }
-export type Theme = 'village' | 'desert'
+export type Theme = 'village' | 'desert' | 'dunes' | 'istiraha'
 export type Mood = 'night' | 'dark' | 'day'
 type Slot = {x: number; y: number; s: number; view: View}
 type Spark = {x: number; y: number; vx: number; vy: number; life: number; col: string}
@@ -26,7 +26,7 @@ function ring(k: number, n: number): Slot {
   return {x: Math.round(x), y: Math.round(y), s: +(0.95 + depth * 0.6).toFixed(2), view: y > CY + 4 ? 'back' : 'front'}
 }
 
-/** Mud-brick houses of an old village, a palm and a well: the setting of «المافيا». */
+/** Mud-brick houses of an old village, a palm and a well: the setting of «الذيابة». */
 function village(g: CanvasRenderingContext2D) {
   const house = (x: number, w: number, h: number) => {
     const y = HORIZON - h + 4
@@ -54,15 +54,93 @@ function village(g: CanvasRenderingContext2D) {
   g.fillStyle = '#8a6a48'; g.fillRect(271, 86, 1, 8); g.fillStyle = '#5a3a20'; g.fillRect(269, 93, 5, 4)
 }
 
+/** Open dunes far from any camp: a ruined fort on the ridge, a lone acacia, rocks and a resting camel — «القطوة السوداء». */
+function dunes(g: CanvasRenderingContext2D) {
+  for (let x = 0; x < W; x++) {
+    const a = Math.round(HORIZON - 6 + 5 * Math.sin(x / 31) + 3 * Math.sin(x / 13 + 1))
+    const b = Math.round(HORIZON + 4 + 4 * Math.sin(x / 23 + 2))
+    g.fillStyle = '#5e4128'; g.fillRect(x, a, 1, HORIZON + 14 - a)
+    g.fillStyle = '#7a5634'; g.fillRect(x, a, 1, 1)
+    g.fillStyle = '#6c4a2e'; g.fillRect(x, b, 1, 3)
+    if ((x * 7) % 11 === 0) { g.fillStyle = '#54391f'; g.fillRect(x, a + 3, 2, 1) }
+  }
+  // Ruined mud fort on the left ridge: broken walls, one tower, a dark gate.
+  const fy = HORIZON - 4
+  g.fillStyle = '#3e2818'; g.fillRect(20, fy - 16, 62, 18)
+  g.fillStyle = '#4c3220'; g.fillRect(20, fy - 16, 62, 2)
+  for (let x = 20; x < 82; x += 5) { const h = (x * 13) % 7; g.fillStyle = '#3e2818'; g.fillRect(x, fy - 19 - h % 4, 3, 3 + h % 4) }
+  g.fillStyle = '#1a0f08'; g.fillRect(34, fy - 4, 2, 6); g.fillRect(58, fy - 12, 9, 3)
+  g.fillStyle = '#3e2818'; g.fillRect(70, fy - 34, 14, 36); g.fillStyle = '#4c3220'; g.fillRect(70, fy - 34, 14, 2)
+  for (const x of [70, 74, 78, 82]) { g.fillStyle = '#3e2818'; g.fillRect(x, fy - 37, 2, 3) }
+  g.fillStyle = '#1a0f08'; g.fillRect(75, fy - 28, 3, 5); g.fillRect(75, fy - 16, 3, 5)
+  g.fillStyle = '#120a06'; g.fillRect(44, fy - 9, 8, 11); g.fillRect(45, fy - 10, 6, 1)
+  // Lone acacia: thin trunk, flat wide crown.
+  const ax = 262, ay = HORIZON + 10
+  g.fillStyle = '#2a1a10'
+  for (let j = 0; j < 22; j++) g.fillRect(ax + Math.round(Math.sin(j / 6) * 2), ay - j, 2, 1)
+  for (const [dx, dy, l] of [[-1, -14, -10], [1, -16, 9], [0, -20, -6]]) for (let k = 0; k < Math.abs(l); k++) g.fillRect(ax + dx + Math.sign(l) * k, ay + dy - Math.round(k * .5), 1, 1)
+  for (let x = -24; x <= 22; x++) {
+    const h = Math.max(0, Math.round(5 - Math.abs(x) / 6 + Math.sin(x / 2) * 1.2))
+    g.fillStyle = '#26381e'; g.fillRect(ax + x, ay - 26 - h, 1, h + 3)
+    g.fillStyle = '#34482a'; if (x % 3 === 0) g.fillRect(ax + x, ay - 26 - h, 1, 1)
+  }
+  // Resting camel beside the acacia.
+  const cx = 214, cy = HORIZON + 22
+  g.fillStyle = '#4a3020'
+  g.fillRect(cx, cy - 7, 22, 7); g.fillRect(cx + 5, cy - 11, 9, 4); g.fillRect(cx + 8, cy - 13, 4, 2)
+  g.fillRect(cx + 21, cy - 12, 3, 8); g.fillRect(cx + 22, cy - 15, 6, 4); g.fillRect(cx + 27, cy - 14, 2, 2)
+  g.fillStyle = '#5c3c28'; g.fillRect(cx + 1, cy - 7, 20, 1); g.fillRect(cx + 6, cy - 11, 7, 1)
+  g.fillStyle = '#2a1a10'; g.fillRect(cx - 1, cy - 5, 2, 4)
+  // Scattered rocks and dry shrubs.
+  for (const [x, y, w] of [[108, 92, 7], [128, 88, 4], [292, 96, 9], [10, 104, 6], [300, 120, 5]]) { g.fillStyle = '#3a2a1e'; g.fillRect(x, y, w, 3); g.fillStyle = '#4e3a2a'; g.fillRect(x + 1, y - 1, w - 2, 1) }
+  for (const [x, y] of [[150, 84], [184, 90], [40, 96], [276, 88]]) { g.fillStyle = '#3a3a1e'; for (let k = -2; k <= 2; k++) g.fillRect(x + k, y - 2 + Math.abs(k), 1, 3 - Math.abs(k)) }
+}
+
+/** An istiraha courtyard at night: whitewashed wall with arches, string lights, palms behind it and turf on the floor — «بلوت». */
+function istiraha(g: CanvasRenderingContext2D) {
+  const top = HORIZON - 30
+  g.fillStyle = '#8a8070'; g.fillRect(0, top, W, HORIZON - top + 6)
+  g.fillStyle = '#a49a88'; g.fillRect(0, top, W, 2)
+  g.fillStyle = '#6e6658'; g.fillRect(0, HORIZON + 4, W, 2)
+  for (let x = 0; x < W; x += 8) { g.fillStyle = '#8a8070'; g.fillRect(x, top - 4, 4, 4); g.fillStyle = '#a49a88'; g.fillRect(x, top - 4, 4, 1) }
+  for (const ax of [28, 64, 236, 272]) {
+    g.fillStyle = '#2a2420'; g.fillRect(ax, top + 10, 20, HORIZON - top - 4)
+    for (let k = 0; k < 10; k++) { const w = Math.round(Math.sqrt(100 - (10 - k) * (10 - k))); g.fillRect(ax + 10 - w, top + k, w * 2, 1) }
+    g.fillStyle = '#6e6658'; g.fillRect(ax - 1, HORIZON + 2, 22, 2)
+  }
+  g.fillStyle = '#4a2c18'; g.fillRect(146, top + 8, 28, HORIZON - top - 2)
+  g.fillStyle = '#5c3a22'; g.fillRect(146, top + 8, 28, 1); g.fillRect(159, top + 8, 2, HORIZON - top - 2)
+  g.fillStyle = '#d9a441'; g.fillRect(156, top + 26, 1, 2); g.fillRect(163, top + 26, 1, 2)
+  for (const [px, ph] of [[110, 24], [200, 18]]) {
+    g.fillStyle = '#3a2818'; g.fillRect(px, top - ph, 2, ph)
+    g.fillStyle = '#1e3a22'
+    for (let a = 0; a < 7; a++) { const t = a / 7 * Math.PI * 2 + .3; for (let r = 0; r < 11; r++) g.fillRect(Math.round(px + Math.cos(t) * r), Math.round(top - ph + Math.sin(t) * r * .5 + r * r * .04), 2, 1) }
+  }
+  g.fillStyle = '#2a2420'; g.fillRect(4, top - 18, 1, 22); g.fillRect(W - 5, top - 18, 1, 22)
+  const cols = ['#ff5a5a', '#ffd23a', '#5fe08e', '#6fb3ff', '#ff9a3a']
+  for (let x = 4; x < W - 4; x++) {
+    const y = Math.round(top - 18 + 10 * Math.sin((x - 4) / (W - 8) * Math.PI * 3) ** 2)
+    g.fillStyle = '#3a3028'; g.fillRect(x, y, 1, 1)
+    if (x % 9 === 0) { g.fillStyle = cols[(x / 9) % 5]; g.fillRect(x, y + 1, 2, 2) }
+  }
+  g.fillStyle = '#c8c8cc'; g.fillRect(212, HORIZON - 6, 9, 14); g.fillStyle = '#6fb3ff'; g.fillRect(213, HORIZON - 12, 7, 6); g.fillStyle = '#8a8a90'; g.fillRect(214, HORIZON - 1, 2, 2)
+  g.fillStyle = '#e8e4d8'; for (let k = 0; k < 4; k++) g.fillRect(96 + k, HORIZON - 4 - k * 2, 10, 2)
+  g.fillRect(104, HORIZON - 4, 2, 12); g.fillRect(96, HORIZON + 2, 2, 6)
+}
+
 function buildGround(theme: Theme) {
   const {c, g} = canvas()
   let seed = 17
   const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647
-  g.fillStyle = 'rgb(104,74,46)'; g.fillRect(0, HORIZON, W, H - HORIZON)
-  for (let k = 0; k < 700; k++) { const x = Math.floor(r() * W), y = HORIZON + Math.floor(r() * (H - HORIZON)); g.fillStyle = r() < .5 ? 'rgb(90,63,39)' : 'rgb(118,85,53)'; g.fillRect(x, y, 1, 1) }
-  g.fillStyle = 'rgb(88,62,38)'
+  const turf = theme === 'istiraha', sand = theme === 'dunes'
+  const dots = turf ? ['rgb(42,80,40)', 'rgb(66,116,58)'] : sand ? ['rgb(104,74,44)', 'rgb(136,98,60)'] : ['rgb(90,63,39)', 'rgb(118,85,53)']
+  g.fillStyle = turf ? 'rgb(52,96,48)' : sand ? 'rgb(120,86,52)' : 'rgb(104,74,46)'; g.fillRect(0, HORIZON, W, H - HORIZON)
+  for (let k = 0; k < 700; k++) { const x = Math.floor(r() * W), y = HORIZON + Math.floor(r() * (H - HORIZON)); g.fillStyle = r() < .5 ? dots[0] : dots[1]; g.fillRect(x, y, 1, 1) }
+  g.fillStyle = turf ? 'rgb(44,84,42)' : sand ? 'rgb(108,78,46)' : 'rgb(88,62,38)'
   for (let k = 0; k < 34; k++) { const x = Math.floor(r() * W), y = HORIZON + 4 + Math.floor(r() * (H - HORIZON - 4)); g.fillRect(x, y, 5 + Math.floor(r() * 9), 1) }
   if (theme === 'village') village(g)
+  else if (theme === 'dunes') dunes(g)
+  else if (theme === 'istiraha') istiraha(g)
   else { pickup(g, 36, 48); tent(g) }
   // Fire pit, stones and the coffee corner.
   g.fillStyle = '#3a2416'; g.fillRect(FX - 8, FY - 1, 16, 2); g.fillRect(FX - 5, FY - 2, 10, 1)

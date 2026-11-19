@@ -346,3 +346,38 @@ button{cursor:pointer}
 .calm .yourturn{transition:none}
 .camp .seat.turn .tt{display:block;color:var(--gold);font-weight:800}
 .app.aiming .camp .seat:not(.has-cta):not(.me){opacity:.45}
+/* ---- «بلوت»: cards, the table in the middle and the round summary ---- */
+.bcard{display:inline-grid;place-items:center;align-content:center;gap:0;width:max(30px,4.2cqw);height:max(42px,5.9cqw);background:#f4ead8;color:#1a1210;box-shadow:inset -2px -2px 0 #c8b48a,0 0 0 2px #000;font-family:var(--display);font-weight:800;line-height:1}
+.bcard b{font-size:max(13px,1.9cqw)}
+.bcard i{font-style:normal;font-size:max(14px,2.1cqw)}
+.bcard.red{color:#c8324a}
+.bcard.big{width:max(44px,6.2cqw);height:max(62px,8.6cqw)}
+.bcard.big b{font-size:max(18px,2.8cqw)}.bcard.big i{font-size:max(20px,3.1cqw)}
+.bcard.win{box-shadow:inset -2px -2px 0 #c8b48a,0 0 0 2px #000,0 0 0 5px var(--gold);transform:translateY(-3px)}
+.sdock .bhand{display:flex;gap:max(3px,.45cqw);flex-wrap:nowrap;justify-content:center;flex:1 1 auto}
+.bbtn{all:unset;cursor:pointer;display:block;transition:transform .1s}
+.bbtn:disabled{cursor:default}
+.bbtn.ok .bcard{box-shadow:inset -2px -2px 0 #c8b48a,0 0 0 2px #000,0 0 0 4px var(--gold)}
+.bbtn.ok{transform:translateY(-6px)}
+.bbtn.ok:hover{transform:translateY(-10px)}
+.bbtn.no{opacity:.45}
+.table-center{left:50%;top:52%;transform:translate(-50%,-50%);pointer-events:none}
+.btable{position:relative;width:max(170px,24cqw);height:max(150px,21cqw)}
+.btable .slot{position:absolute;left:50%;top:50%}
+.btable .slot.b{transform:translate(-50%,8%)}
+.btable .slot.t{transform:translate(-50%,-108%)}
+.btable .slot.l{transform:translate(-170%,-50%)}
+.btable .slot.r{transform:translate(70%,-50%)}
+.btable .face{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:4px}
+.btable .face small{background:rgba(14,9,6,.85);padding:2px 8px;font-size:max(11px,1.3cqw);color:var(--ink);box-shadow:0 0 0 2px #000}
+.btable .mode{position:absolute;left:50%;top:-6%;transform:translateX(-50%);white-space:nowrap;background:rgba(14,9,6,.85);color:var(--gold);padding:2px 8px;font-size:max(11px,1.3cqw);box-shadow:0 0 0 2px #000}
+.bscore{pointer-events:auto;display:grid;justify-items:center;gap:6px;padding:max(8px,1.2cqw) max(12px,2cqw);font-size:max(12px,1.5cqw);min-width:max(220px,30cqw)}
+.bscore>b{font-size:max(15px,2.2cqw);color:var(--gold)}
+.bscore table{border-collapse:collapse;width:100%}
+.bscore td,.bscore th{padding:2px 8px;text-align:center}
+.bscore th{color:var(--muted,#bfae8e);font-weight:600}
+.bscore tr.tot td{border-top:2px solid var(--edge);font-weight:800;color:var(--gold)}
+.bscore td:first-child{text-align:start}
+.seat .bd i.bid{background:#2a1a10;color:#fff4d6}
+.seat .bd i.bid.buy{background:var(--gold);color:#2a1408}
+.app.baloot .sdock .acts .ghost{min-width:max(52px,6cqw)}

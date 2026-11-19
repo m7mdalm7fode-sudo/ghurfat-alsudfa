@@ -1,10 +1,10 @@
-// «المافيا»: hidden roles around the fire. At night the mafia choose a victim, the doctor protects
+// «الذيابة»: hidden roles around the fire. At night the mafia choose a victim, the doctor protects
 // someone and the detective questions someone; by day everyone talks and votes one player out.
 import {SocialRoom, pick, shuffle} from './social.mjs'
 
 const K = Number(process.env.SOCIAL_SPEED || 1)
 const T = Object.fromEntries(Object.entries({night: 45000, dawn: 7000, day: 120000, vote: 45000, verdict: 7000, over: 25000}).map(([k, v]) => [k, v * K]))
-export const ROLE_NAME = {mafia: 'مافيا', doctor: 'الطبيب', detective: 'المحقق', citizen: 'مواطن'}
+export const ROLE_NAME = {mafia: 'ذيب', doctor: 'الطبيب', detective: 'المحقق', citizen: 'مواطن'}
 
 export function rolesFor(n) {
   const mafia = n <= 5 ? 1 : n <= 8 ? 2 : 3
@@ -24,13 +24,13 @@ export class MafiaRoom extends SocialRoom {
     ps.forEach((s, i) => { this.role[s] = roles[i]; this.checks[s] = [] })
     this.counts = {mafia: roles.filter(r => r === 'mafia').length, doctor: roles.includes('doctor') ? 1 : 0, detective: 1, citizen: roles.filter(r => r === 'citizen').length}
     this.log = []
-    this.event(`بدأت اللعبة: ${ps.length} لاعبين، بينهم ${this.counts.mafia} مافيا`, 'start')
+    this.event(`بدأت اللعبة: ${ps.length} لاعبين، بينهم ${this.counts.mafia} ذيب`, 'start')
     this.toNight()
   }
   alive(role) { return this.living().filter(s => this.role[s] === role) }
   toNight() {
     this.night++; this.kills = {}; this.save = ''; this.check = ''
-    this.setPhase('night', T.night, `الليلة ${this.night}: المدينة نائمة… المافيا تختار، والطبيب يحمي، والمحقق يحقق`)
+    this.setPhase('night', T.night, `الليلة ${this.night}: المدينة نائمة… الذيابة تختار، والطبيب يحمي، والمحقق يحقق`)
     this.event(`🌙 الليلة ${this.night}`, 'night')
   }
   /** Night ends early once every living mafia, doctor and detective has chosen. */
@@ -48,7 +48,7 @@ export class MafiaRoom extends SocialRoom {
         if (this.check) return this.err(seat, 'already')
         if (!living || t === seat) return this.err(seat, 'invalid_target')
         this.check = t; const bad = this.role[t] === 'mafia'; this.checks[seat].push({seat: t, mafia: bad})
-        this.event(`🔎 تحقيقك: ${this.name(t)} ${bad ? 'من المافيا!' : 'ليس من المافيا'}`, bad ? 'bad' : 'good', [seat])
+        this.event(`🔎 تحقيقك: ${this.name(t)} ${bad ? 'من الذيابة!' : 'ليس من الذيابة'}`, bad ? 'bad' : 'good', [seat])
       } else return this.err(seat, 'invalid_message')
       if (this.nightDone()) this.resolveNight()
     } else if (this.phase === 'day' && m.kind === 'ready') {
@@ -66,8 +66,8 @@ export class MafiaRoom extends SocialRoom {
     const best = Math.max(0, ...Object.values(tally)), top = Object.keys(tally).filter(t => tally[t] === best)
     const victim = top.length ? pick(top) : ''
     this.lastSave = this.save
-    if (!victim) { this.notice = 'مرّت الليلة بسلام… لم تختر المافيا أحدًا'; this.event('☀️ لم يمت أحد الليلة', 'safe') }
-    else if (victim === this.save) { this.notice = `حاولت المافيا قتل أحدهم… لكن الطبيب أنقذه!`; this.event('☀️ الطبيب أنقذ ضحية المافيا — لم يمت أحد', 'safe') }
+    if (!victim) { this.notice = 'مرّت الليلة بسلام… لم تختر الذيابة أحدًا'; this.event('☀️ لم يمت أحد الليلة', 'safe') }
+    else if (victim === this.save) { this.notice = `حاولت الذيابة قتل أحدهم… لكن الطبيب أنقذه!`; this.event('☀️ الطبيب أنقذ ضحية الذيابة — لم يمت أحد', 'safe') }
     else { this.seats[victim].alive = false; this.notice = `وُجد ${this.name(victim)} مقتولًا عند الفجر — كان ${ROLE_NAME[this.role[victim]]}`; this.event(`💀 قُتل ${this.name(victim)} (${ROLE_NAME[this.role[victim]]})`, 'death') }
     this.setPhase('dawn', T.dawn)
   }
@@ -85,8 +85,8 @@ export class MafiaRoom extends SocialRoom {
     const m = this.alive('mafia').length, rest = this.living().length - m
     if (!m) this.winner = 'town'; else if (m >= rest) this.winner = 'mafia'
     if (!this.winner) return false
-    this.notice = this.winner === 'town' ? 'انتصر أهل المدينة! كُشفت المافيا كلها' : 'انتصرت المافيا! سيطروا على المجلس'
-    this.event(this.winner === 'town' ? '🏆 فاز أهل المدينة' : '🏆 فازت المافيا', 'win')
+    this.notice = this.winner === 'town' ? 'انتصر أهل المدينة! كُشفت الذيابة كلها' : 'انتصرت الذيابة! سيطروا على المجلس'
+    this.event(this.winner === 'town' ? '🏆 فاز أهل المدينة' : '🏆 فازت الذيابة', 'win')
     this.setPhase('over', T.over); return true
   }
   timeout() {

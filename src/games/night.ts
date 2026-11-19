@@ -70,9 +70,9 @@ function aimable(id: string, p: SeatPub, c: Ctx): string {
 }
 
 const def: GameDef = {
-  id: 'night', title: 'الليل الأسود', titleHTML: 'الليل <em>الأسود</em>', theme: 'desert',
+  id: 'night', title: 'القطوة السوداء', titleHTML: 'القطوة <em>السوداء</em>', theme: 'dunes',
   eyebrow: 'خونة بين أهل الديرة · من ٤ إلى ١٢ لاعبًا',
-  tagline: 'بين أهل الديرة خونة لا يعرفهم أحد. بالنهار تتبادلون التهم، وإذا حلّ الليل الأسود… اختار الخونة من يغتالون.',
+  tagline: 'بين أهل الديرة خونة لا يعرفهم أحد. بالنهار تتبادلون التهم، وإذا حلّ الليل… اختار الخونة من يغتالون.',
   rules, lineup: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12'],
   timerTotal: p => TOTAL[p] || 30000,
   mood: s => ['kill', 'confess', 'reveal'].includes(s.phase) ? 'dark' : 'night',
@@ -117,7 +117,7 @@ const def: GameDef = {
         return s.played ? 'دورك — العب المزيد أو أنهِ دورك' : 'دورك — اسحب أو العب ورقة'
       case 'choose': return s.choosing === c.me ? 'اختر ورقة محاكمة تكشفها' : `${name(s.choosing)} يختار ورقة`
       case 'conspiracy': return 'المؤامرة! 👁️'
-      case 'kill': return !live ? 'الليل' : mine?.team === 'traitor' && !mine.votes?.[c.me] ? 'اختر من تغتال' : mine?.can_guard && !mine.guard ? 'احمِ لاعبًا بالدرع' : 'الليل الأسود — أغمض عينيك'
+      case 'kill': return !live ? 'الليل' : mine?.team === 'traitor' && !mine.votes?.[c.me] ? 'اختر من تغتال' : mine?.can_guard && !mine.guard ? 'احمِ لاعبًا بالدرع' : 'حلّ الليل — أغمض عينيك'
       case 'confess': return !live ? 'الاعتراف' : mine?.exempt ? 'أنت محمي الليلة ✔' : mine?.confess ? 'اخترت ✔ — بانتظار البقية' : 'خاطر… أو اكشف ورقة لتتحصن'
       case 'reveal': return 'انتهى الليل'
       case 'over': return s.winner === 'village' ? 'فاز أهل الديرة 🏆' : 'فاز الخونة 🏆'
@@ -148,9 +148,9 @@ const def: GameDef = {
         : {text: `اكتملت الاتهامات على ${name(s.choosing)} — بتنكشف وحدة من أوراقه`, mine: false}
       case 'conspiracy': return {text: '👁️ المؤامرة: كل لاعب ياخذ ورقة محاكمة مخفية من جاره — ممكن تصير خائن!', mine: false}
       case 'kill':
-        if (mine.team === 'traitor' && !mine.votes?.[c.me]) return {text: `الليل الأسود: اضغط ${icon('weapon')} على اللاعب اللي تبون تغتالونه. تكلم مع رفاقك سرًّا في 💬`, mine: true, alert: 'اختر من تغتال'}
+        if (mine.team === 'traitor' && !mine.votes?.[c.me]) return {text: `حلّ الليل: اضغط ${icon('weapon')} على اللاعب اللي تبون تغتالونه. تكلم مع رفاقك سرًّا في 💬`, mine: true, alert: 'اختر من تغتال'}
         if (mine.can_guard && !mine.guard) return {text: `أنت <b>الشايب</b>: اضغط ${icon('shield')} على لاعب تحميه من الاغتيال الليلة`, mine: true, alert: 'احمِ لاعبًا'}
-        return {text: 'الليل الأسود: الخونة يختارون ضحيتهم… انتظر', mine: false}
+        return {text: 'حلّ الليل: الخونة يختارون ضحيتهم… انتظر', mine: false}
       case 'confess':
         if (mine.exempt || mine.confess) return {text: 'تم ✔ — ننتظر البقية يختارون', mine: false}
         return {text: 'قرّر: <b>«أخاطر»</b> وممكن تنقتل الليلة، أو <b>اكشف ورقة محاكمة</b> للكل وتنجو أكيد', mine: true, alert: 'تخاطر أو تكشف؟'}

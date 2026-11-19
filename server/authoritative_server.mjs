@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Authoritative room server for «آخر فنجال»: a match of three rounds around one rifle loaded with
 // live and blank bullets. Each round is harder and hands out more items; the round winner opens the next.
-import {createServer} from 'node:http'; import {randomBytes} from 'node:crypto'; import {WebSocketServer,WebSocket} from 'ws'; import {MafiaRoom} from './mafia.mjs'; import {NightRoom} from './night.mjs'
+import {createServer} from 'node:http'; import {randomBytes} from 'node:crypto'; import {WebSocketServer,WebSocket} from 'ws'; import {MafiaRoom} from './mafia.mjs'; import {NightRoom} from './night.mjs'; import {BalootRoom} from './baloot.mjs'
 const MARKER='chamber6-v3', HOST=process.env.HOST||'127.0.0.1', PORT=Number(process.env.PORT||8787)
 const SEATS=['p1','p2','p3','p4','p5','p6'], MAX_ROOMS=128, MAX_SPECTATORS=8
 const COUNTDOWN_MS=3500, ROUND_END_MS=Number(process.env.ROUND_END_MS||6000), MATCH_END_MS=Number(process.env.MATCH_END_MS||10000)
@@ -100,7 +100,7 @@ class Room{
  }
 }
 const NAMES={scope:'المنظار',dallah:'الدلّة',rope:'الحبل',bukhoor:'البخور',double:'طلقة الدبل',steal:'السرقة',eject:'حذف الطلقة',flip:'التبديل'}
-const GAMES={fanjal:Room,mafia:MafiaRoom,night:NightRoom}
+const GAMES={fanjal:Room,mafia:MafiaRoom,night:NightRoom,baloot:BalootRoom}
 function room(game,id){const key=`${game}:${id}`;if(!rooms.has(key))rooms.set(key,new GAMES[game](id));return rooms.get(key)}
 const http=createServer((req,res)=>{if(req.url==='/healthz'){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,marker:MARKER,rooms:rooms.size}));return}res.writeHead(404);res.end('Not found')})
 const wss=new WebSocketServer({noServer:true,maxPayload:4096});http.on('upgrade',(req,socket,head)=>{let u;try{u=new URL(req.url,'http://localhost')}catch{return socket.destroy()}const origin=req.headers.origin;const same=origin&&(()=>{try{return new URL(origin).host===req.headers.host}catch{return false}})();if(origin&&!same&&!allowed.has(origin))return socket.destroy();if(u.pathname!=='/ws')return socket.destroy();const id=code(u.searchParams.get('room')),game=GAMES[u.searchParams.get('game')]?u.searchParams.get('game'):'fanjal';if(!id||(!rooms.has(`${game}:${id}`)&&rooms.size>=MAX_ROOMS))return socket.destroy();wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,u,id,game))})

@@ -1,4 +1,4 @@
-// Full-game test for «المافيا» and «الليل الأسود»: N bots join, the host starts, every bot makes
+// Full-game test for «الذيابة» and «القطوة السوداء»: N bots join, the host starts, every bot makes
 // random legal moves until the game is over. Usage: node server/social_e2e.mjs mafia|night [players] [games]
 import {spawn} from 'node:child_process'; import WebSocket from 'ws'
 const game = process.argv[2] || 'mafia', N = Number(process.argv[3] || 6), GAMES = Number(process.argv[4] || 1), PORT = 8900 + Math.floor(Math.random() * 90)
@@ -31,6 +31,11 @@ function think(b) {
   const living = Object.keys(m.seats).filter(s => m.seats[s].inGame && m.seats[s].alive)
   const others = living.filter(s => s !== me)
   if (Math.random() < .05) b.ws.send(JSON.stringify({type: 'chat', text: 'هلا ' + me}))
+  if (game === 'baloot') {
+    if (m.phase === 'bid' && m.turn === me) send({kind: 'bid', bid: pick(['pass', 'pass', 'pass', 'hokm', 'sun']), suit: pick(['S', 'H', 'C', 'D'])})
+    if (m.phase === 'play' && m.turn === me && mine?.legal?.length) send({kind: 'play', card: pick(mine.legal)})
+    return
+  }
   if (game === 'mafia') {
     if (m.phase === 'night') { if (mine.role === 'mafia' && !mine.kill[me]) send({kind: 'kill', target: pick(others.filter(s => m.seats[s].role !== 'mafia'))}); if (mine.role === 'doctor' && !mine.save) send({kind: 'save', target: pick(living.filter(s => s !== mine.last_save))}); if (mine.role === 'detective' && !mine.check) send({kind: 'check', target: pick(others)}) }
     if (m.phase === 'day' && !seat.ready && Math.random() < .5) send({kind: 'ready'})

@@ -8,8 +8,9 @@ import {portraitURL} from './ui/pixel'
  */
 const GAMES = [
   {id: 'fanjal', title: 'آخر فنجال', players: '٢–٦ لاعبين', blurb: 'بندقية واحدة وطلقات حيّة وفارغة مخفية. أطلق على نفسك أو على غيرك… ومن يصمد يشرب آخر فنجال.', chars: ['p1', 'p2', 'p5'], icon: '☕'},
-  {id: 'mafia', title: 'المافيا', players: '٤–١٠ لاعبين', blurb: 'عصابة مختبئة بين أهل الديرة. بالليل يختارون ضحية، وبالنهار يتناقش الجميع ويصوّتون.', chars: ['p6', 'p9', 'p4'], icon: '🔪'},
-  {id: 'night', title: 'الليل الأسود', players: '٤–١٢ لاعبًا', blurb: 'أوراق محاكمة مخفية، اتهامات وقطة سوداء… وإذا حلّ الليل اختار الخونة من يغتالون.', chars: ['p10', 'p7', 'p12'], icon: '🌑'},
+  {id: 'mafia', title: 'الذيابة', players: '٤–١٠ لاعبين', blurb: 'ذيابة مختبئين بين أهل الديرة. بالليل يختارون ضحية، وبالنهار يتناقش الجميع ويصوّتون.', chars: ['p6', 'p9', 'p4'], icon: '🔪'},
+  {id: 'night', title: 'القطوة السوداء', players: '٤–١٢ لاعبًا', blurb: 'أوراق محاكمة مخفية، اتهامات وقطة سوداء… وإذا حلّ الليل اختار الخونة من يغتالون.', chars: ['p10', 'p7', 'p12'], icon: '🌑'},
+  {id: 'baloot', title: 'بلوت', players: '٤ لاعبين · البوت يكمّل الناقص', blurb: 'فريقين ضد بعض: اشترِ صن أو حكم، العب أكلاتك صح، وسجّل مشاريعك… أول من يوصل ١٥٢ يفوز.', chars: ['p3', 'p4', 'p2'], icon: '♠️'},
 ] as const
 
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c]!))
@@ -37,6 +38,7 @@ async function boot() {
   if (game === 'fanjal') return (await import('./games/fanjal')).mountFanjal()
   if (game === 'mafia') return (await import('./games/mafia')).mountMafia()
   if (game === 'night') return (await import('./games/night')).mountNight()
+  if (game === 'baloot') return (await import('./games/baloot')).mountBaloot()
   hub()
 }
 boot().catch(e => { console.error(e); document.querySelector('#ui')!.innerHTML = `<div class="fatal">تعذر تشغيل اللعبة: ${esc(String(e))}</div>` })

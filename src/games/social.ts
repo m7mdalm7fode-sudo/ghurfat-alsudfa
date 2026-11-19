@@ -22,7 +22,7 @@ export type Ctx = {
   send(m: Record<string, unknown>): void; say(text: string): void; sfx(n: Sfx): void; render(): void; camp: Camp
 }
 export type GameDef = {
-  id: 'mafia' | 'night'; title: string; titleHTML: string; eyebrow: string; tagline: string; rules: string; theme: Theme
+  id: 'mafia' | 'night' | 'baloot'; title: string; titleHTML: string; eyebrow: string; tagline: string; rules: string; theme: Theme
   lineup: string[]
   mood(s: SocialState): Mood
   seat(id: string, p: SeatPub, ctx: Ctx): Partial<CampSeat>
@@ -37,13 +37,17 @@ export type GameDef = {
   timerTotal(phase: string): number
   /** Plain-language line above the dock: what is happening and what to press. `alert` (short) pops a big banner once when it appears. */
   guide?(ctx: Ctx): {text: string; mine: boolean; alert?: string}
+  /** Optional overlay in the middle of the scene (the table for card games). */
+  center?(ctx: Ctx): string
+  /** Extra line in the lobby card. */
+  lobbyNote?: string
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c]!))
 export {esc}
 const NAME_KEY = 'chamber6_name', PREFS_KEY = 'chamber6_prefs'
 const CONN_TEXT: Record<ConnectionState, string> = {stopped: 'غير متصل', discovering: 'جارٍ البحث عن المجلس…', connecting: 'جارٍ الاتصال…', open: 'متصل', retry: 'انقطع الاتصال — نعيد المحاولة…', unavailable: 'خادم اللعب غير متاح'}
-const ERRORS: Record<string, string> = {not_your_turn: 'ليس دورك الآن', invalid_target: 'لا يمكن اختيار هذا اللاعب', not_ready: 'ليس الآن', invalid_message: 'لا يمكن ذلك الآن', not_host: 'المضيف فقط يبدأ اللعبة', need_players: 'تحتاج 4 لاعبين على الأقل', quiet: 'لا يمكنك الكلام الآن', fort: 'عليه «حصن» — الاتهام لا يصله', guarded: 'الحارس لا يُسرق ولا يُتحرّى عنه', empty: 'لا يوجد ما تأخذه أو تزيله منه', used: 'استخدمت قدرتك من قبل', same_save: 'لا يمكنك حماية نفس الشخص ليلتين متتاليتين', already: 'حققت الليلة بالفعل'}
+const ERRORS: Record<string, string> = {not_your_turn: 'ليس دورك الآن', invalid_target: 'لا يمكن اختيار هذا اللاعب', not_ready: 'ليس الآن', invalid_message: 'لا يمكن ذلك الآن', not_host: 'المضيف فقط يبدأ اللعبة', need_players: 'تحتاجون لاعبين أكثر', must_follow: 'ما تقدر تلعب هذي الحين — العب من الأوراق المضيئة', quiet: 'لا يمكنك الكلام الآن', fort: 'عليه «حصن» — الاتهام لا يصله', guarded: 'الحارس لا يُسرق ولا يُتحرّى عنه', empty: 'لا يوجد ما تأخذه أو تزيله منه', used: 'استخدمت قدرتك من قبل', same_save: 'لا يمكنك حماية نفس الشخص ليلتين متتاليتين', already: 'حققت الليلة بالفعل'}
 function readJSON<T>(k: string, f: T): T { try { const v = localStorage.getItem(k); return v ? {...f, ...JSON.parse(v)} : f } catch { return f } }
 function writeJSON(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)) } catch { /* blocked */ } }
 function readText(k: string) { try { return localStorage.getItem(k) || '' } catch { return '' } }
@@ -84,6 +88,7 @@ export function mountSocial(def: GameDef) {
   </div>
   <div class="hudx sdock"></div>
   <div class="hudx yourturn" aria-live="assertive"></div>
+  <div class="hudx table-center"></div>
   <div class="hudx lobby-card chip" hidden></div>
   <div class="hudx chat-pop chip" hidden><ol class="chat-log"></ol><form class="chat-form"><input maxlength="140" placeholder="اكتب رسالة…" aria-label="رسالة"><button class="ghost" type="submit">إرسال</button></form></div>
   <div class="hudx menu-pop chip" hidden>
@@ -189,7 +194,7 @@ export function mountSocial(def: GameDef) {
     const ids = Object.keys(s.seats).filter(id => s.seats[id].inGame || s.phase === 'lobby' || s.seats[id].connected)
     const seats: CampSeat[] = ids.map(id => {
       const p = s.seats[id]
-      return {id, char: id, name: p.name, present: true, alive: s.phase === 'lobby' || !p.inGame ? p.connected : p.alive, me: id === me, turn: false, cta: '', tag: '', badges: '', dim: !p.connected, ...def.seat(id, p, c)}
+      return {id, char: id, name: p.name, present: true, alive: s.phase === 'lobby' || !p.inGame ? p.connected : p.alive, me: id === me, turn: false, cta: '', tag: '', badges: '', dim: !p.connected && !p.bot, ...def.seat(id, p, c)}
     })
     camp.mood = def.mood(s)
     camp.update(seats, me)
@@ -202,6 +207,7 @@ export function mountSocial(def: GameDef) {
     roleChip.hidden = !roleChip.innerHTML
     const g = s.phase === 'lobby' ? null : def.guide?.(c) || null
     setHTML(dock, s.phase === 'lobby' ? '' : `${g ? `<div class="guide ${g.mine ? 'mine' : ''}">${g.text}</div>` : ''}${def.dock(c)}`)
+    setHTML($('.table-center'), s.phase === 'lobby' ? '' : def.center?.(c) || '')
     root.querySelector('.app')!.classList.toggle('aiming', Boolean(sel.kind || sel.ability))
     const alert = g?.mine && g.alert ? `${s.phase}:${g.alert}` : ''
     if (alert && alert !== lastAlert) {
@@ -214,7 +220,7 @@ export function mountSocial(def: GameDef) {
     lobby.hidden = s.phase !== 'lobby'
     if (s.phase === 'lobby') {
       const n = Object.values(s.seats).filter(p => p.connected).length, host = s.host === me
-      setHTML(lobby, `<b>${def.title}</b><span>في المجلس ${n} من ${s.max} — تحتاجون ${s.min} على الأقل</span>
+      setHTML(lobby, `<b>${def.title}</b><span>في المجلس ${n} من ${s.max} ${s.min > 1 ? ` — تحتاجون ${s.min} على الأقل` : ''}</span>${def.lobbyNote ? `<span class="muted">${def.lobbyNote}</span>` : ''}
        <div class="row"><button class="ghost" data-action="invite">📨 ادعُ أصحابك</button>${host ? `<button class="primary small" data-action="start" ${n < s.min ? 'disabled' : ''}>▶ ابدأ اللعبة</button>` : `<span class="muted">بانتظار ${esc(s.seats[s.host]?.name || 'المضيف')} ليبدأ…</span>`}</div>`)
     }
     $('.room-label').textContent = room

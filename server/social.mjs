@@ -1,4 +1,4 @@
-// Shared room plumbing for the table games with hidden roles («المافيا» and «الليل الأسود»):
+// Shared room plumbing for the table games with hidden roles («الذيابة» and «القطوة السوداء»):
 // seats and resume tokens, a host who starts the game from the lobby, chat, a public event log,
 // and a per-player view (each socket only ever receives what that player is allowed to know).
 import {randomBytes} from 'node:crypto'

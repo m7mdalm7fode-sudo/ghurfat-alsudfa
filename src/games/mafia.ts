@@ -2,29 +2,29 @@ import {icon} from '../ui/icons'
 import {esc, mountSocial, type GameDef} from './social'
 
 const ROLE: Record<string, {name: string; icon: string; goal: string; color: string}> = {
-  mafia: {name: 'مافيا', icon: 'knife', goal: 'اختاروا ضحية كل ليلة، وتخفّوا بالنهار حتى تصيروا الأغلبية', color: '#ff5a5a'},
+  mafia: {name: 'ذيب', icon: 'knife', goal: 'اختاروا ضحية كل ليلة، وتخفّوا بالنهار حتى تصيروا الأغلبية', color: '#ff5a5a'},
   doctor: {name: 'الطبيب', icon: 'help', goal: 'احمِ لاعبًا كل ليلة من القتل (ليس نفس الشخص ليلتين متتاليتين)', color: '#5fe08e'},
-  detective: {name: 'المحقق', icon: 'look', goal: 'حقق مع لاعب كل ليلة لتعرف إن كان من المافيا', color: '#6fb3ff'},
-  citizen: {name: 'مواطن', icon: 'house', goal: 'اكشفوا المافيا بالنقاش والتصويت', color: '#e3d6b8'},
+  detective: {name: 'المحقق', icon: 'look', goal: 'حقق مع لاعب كل ليلة لتعرف إن كان من الذيابة', color: '#6fb3ff'},
+  citizen: {name: 'مواطن', icon: 'house', goal: 'اكشفوا الذيابة بالنقاش والتصويت', color: '#e3d6b8'},
 }
 const TOTAL: Record<string, number> = {night: 45000, dawn: 7000, day: 120000, vote: 45000, verdict: 7000, over: 25000}
 
 const rules = `<h4>الفكرة</h4><ul>
-<li>كل لاعب يأخذ دورًا سريًّا: <b class="bad">مافيا</b>، <b class="ok">الطبيب</b>، <b class="ok">المحقق</b> أو <b>مواطن</b>.</li>
-<li>المافيا يعرفون بعضهم. البقية لا يعرفون أحدًا.</li></ul>
+<li>كل لاعب يأخذ دورًا سريًّا: <b class="bad">ذيب</b>، <b class="ok">الطبيب</b>، <b class="ok">المحقق</b> أو <b>مواطن</b>.</li>
+<li>الذيابة يعرفون بعضهم. البقية لا يعرفون أحدًا.</li></ul>
 <h4>الليل 🌙</h4><ul>
-<li>المافيا يختارون ضحية (🔪 فوق اللاعب)، ويتكلمون سرًّا بينهم في الدردشة.</li>
+<li>الذيابة يختارون ضحية (🔪 فوق اللاعب)، ويتكلمون سرًّا بينهم في الدردشة.</li>
 <li>الطبيب يحمي لاعبًا (💊)، والمحقق يسأل عن لاعب (🔎) ويعرف الجواب فورًا.</li></ul>
 <h4>النهار ☀️</h4><ul>
 <li>يُعلن من مات ودوره. تناقشوا في الدردشة أو الصوت، ثم صوّتوا (🗳️) لطرد من تشكّون فيه، أو امتنعوا.</li>
 <li>الأكثر أصواتًا يُطرد ويُكشف دوره. التعادل = لا أحد يُطرد.</li></ul>
-<h4>الفوز</h4><ul><li>أهل المدينة يفوزون بطرد كل المافيا. المافيا يفوزون إذا صار عددهم مساويًا للبقية.</li>
+<h4>الفوز</h4><ul><li>أهل المدينة يفوزون بطرد كل الذيابة. الذيابة يفوزون إذا صار عددهم مساويًا للبقية.</li>
 <li>من ٤ إلى ١٠ لاعبين. الخادم هو الراوي — لا تحتاجون قائدًا.</li></ul>`
 
 const def: GameDef = {
-  id: 'mafia', title: 'المافيا', titleHTML: '<em>المافيا</em>', theme: 'village',
+  id: 'mafia', title: 'الذيابة', titleHTML: '<em>الذيابة</em>', theme: 'village',
   eyebrow: 'أدوار سرية · من ٤ إلى ١٠ لاعبين · الخادم هو الراوي',
-  tagline: 'في الديرة القديمة تختبئ عصابة بين أهلها. في الليل يختارون ضحية، وفي النهار يجلس الجميع حول النار… فمن تتهم؟',
+  tagline: 'في الديرة القديمة ذيابة لابسين ثياب أهلها. في الليل يختارون ضحية، وفي النهار يجلس الجميع حول النار… فمن تتهم؟',
   rules, lineup: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10'],
   timerTotal: p => TOTAL[p] || 30000,
   mood: s => s.phase === 'night' ? 'dark' : s.phase === 'lobby' || s.phase === 'over' ? 'night' : 'day',
@@ -40,7 +40,7 @@ const def: GameDef = {
     if (s.phase === 'night' && mine.role === 'doctor' && mine.save === id) badges = `<i>${icon('help')}</i>`
     if (s.phase === 'night' && mine.role === 'detective' && mine.check === id) badges = `<i>${icon('look')}</i>`
     const checked = (mine.checks || []).find((x: {seat: string}) => x.seat === id)
-    if (checked && !role) badges += checked.mafia ? '<i class="bad">مافيا!</i>' : '<i class="ok">بريء</i>'
+    if (checked && !role) badges += checked.mafia ? '<i class="bad">ذيب!</i>' : '<i class="ok">بريء</i>'
     if (meAlive && alive && p.inGame) {
       if (s.phase === 'night') {
         if (mine.role === 'mafia' && p.role !== 'mafia') cta = icon('knife')
@@ -66,7 +66,7 @@ const def: GameDef = {
     if (s.phase === 'day') return 'النهار — تناقشوا'
     if (s.phase === 'vote') return alive ? (me.vote ? 'صوّتّ ✔ — بانتظار البقية' : 'صوّت: من تطرد؟') : 'التصويت'
     if (s.phase === 'verdict') return 'حُكم المجلس'
-    if (s.phase === 'over') return s.winner === 'town' ? 'فاز أهل المدينة 🏆' : 'فازت المافيا 🏆'
+    if (s.phase === 'over') return s.winner === 'town' ? 'فاز أهل المدينة 🏆' : 'فازت الذيابة 🐺'
     return 'بانتظار اللاعبين'
   },
 
@@ -76,10 +76,10 @@ const def: GameDef = {
     if (!me?.inGame) return {text: 'أنت تشاهد هذه الجولة — تدخل اللعبة الجاية', mine: false}
     if (!live) return {text: 'خرجت من اللعبة 👻 — تقدر تشاهد وتتكلم مع الأموات في 💬', mine: false}
     if (s.phase === 'night') {
-      if (mine.role === 'mafia') return {text: `أنت <b class="bad">مافيا</b>: اضغط ${icon('knife')} على اللي تبي تقتله الليلة. تكلم مع ربعك سرًّا في 💬`, mine: true, alert: 'اختر ضحيتك'}
+      if (mine.role === 'mafia') return {text: `أنت <b class="bad">ذيب</b>: اضغط ${icon('knife')} على اللي تبي تقتله الليلة. تكلم مع ربعك سرًّا في 💬`, mine: true, alert: 'اختر ضحيتك'}
       if (mine.role === 'doctor') return mine.save ? {text: 'اخترت من تحميه ✔ — تقدر تغيّره قبل ما يخلص الوقت', mine: false} : {text: `أنت <b class="ok">الطبيب</b>: اضغط ${icon('help')} على لاعب تحميه من القتل الليلة (تقدر تحمي نفسك)`, mine: true, alert: 'احمِ لاعبًا'}
-      if (mine.role === 'detective') return mine.check ? {text: 'حققت الليلة ✔ — الجواب تحت اسمه', mine: false} : {text: `أنت <b class="ok">المحقق</b>: اضغط ${icon('look')} على لاعب وتعرف هل هو مافيا`, mine: true, alert: 'حقق مع لاعب'}
-      return {text: 'أنت مواطن: نم وانتظر الفجر… المافيا يتحركون الحين', mine: false}
+      if (mine.role === 'detective') return mine.check ? {text: 'حققت الليلة ✔ — الجواب تحت اسمه', mine: false} : {text: `أنت <b class="ok">المحقق</b>: اضغط ${icon('look')} على لاعب وتعرف هل هو ذيب`, mine: true, alert: 'حقق مع لاعب'}
+      return {text: 'أنت مواطن: نم وانتظر الفجر… الذيابة يتحركون الحين', mine: false}
     }
     if (s.phase === 'dawn') return {text: 'الفجر: شوفوا مين انقتل الليلة', mine: false}
     if (s.phase === 'day') return me.ready ? {text: 'أنت جاهز ✔ — ننتظر البقية يخلصون نقاش', mine: false} : {text: 'النهار: تناقشوا في 💬 أو بالصوت: مين تشكّون فيه؟ إذا خلصتم اضغط <b>«جاهز للتصويت»</b>', mine: true}
@@ -96,7 +96,7 @@ const def: GameDef = {
 
   dock(c) {
     const s = c.state, me = s.seats[c.me], alive = me?.inGame && me.alive
-    const counts = s.counts ? `<span class="pill">${icon('knife')} ${s.counts.mafia} مافيا · ${icon('help')} ${s.counts.doctor} · ${icon('look')} ${s.counts.detective} · ${icon('house')} ${s.counts.citizen}</span>` : ''
+    const counts = s.counts ? `<span class="pill">${icon('knife')} ${s.counts.mafia} ذيب · ${icon('help')} ${s.counts.doctor} · ${icon('look')} ${s.counts.detective} · ${icon('house')} ${s.counts.citizen}</span>` : ''
     let act = ''
     if (alive && s.phase === 'day') act = `<button class="ghost ${me.ready ? 'on' : ''}" data-pick="ready">${icon('ready')} ${me.ready ? 'جاهز ✔ (إلغاء)' : 'جاهز للتصويت'}</button>`
     if (alive && s.phase === 'vote') act = `<button class="ghost ${me.vote === 'skip' ? 'on' : ''}" data-pick="skip">أمتنع</button>`
