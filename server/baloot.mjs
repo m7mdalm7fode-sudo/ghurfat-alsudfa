@@ -2,7 +2,7 @@
 // (حكم / صن / بس, then a second round), eight tricks with follow-suit and trumping rules,
 // projects (سرا، خمسين، مية، أربعمية، بلوت) and the buyer's contract. First team to 152 wins.
 // Empty seats are filled with bots when the host starts, so even one person can play.
-import {SocialRoom, shuffle} from './social.mjs'
+import {SocialRoom, shuffle, BOT_NAMES} from './social.mjs'
 
 const K = Number(process.env.SOCIAL_SPEED || 1)
 const ms = v => Math.max(40, Math.round(v * K))
@@ -46,14 +46,14 @@ export function findProjects(hand, mode) {
 export class BalootRoom extends SocialRoom {
   constructor(id) { super(id, {game: 'baloot', maxSeats: 4, minPlayers: 1}); this.reset() }
   reset() {
-    for (const s of this.seatIds) if (this.seats[s].bot) Object.assign(this.seats[s], this.emptySeat())
+    for (const s of this.seatIds) if (this.seats[s].auto) Object.assign(this.seats[s], this.emptySeat())
     this.score = {a: 0, b: 0}; this.dealer = ORDER[Math.floor(Math.random() * 4)]; this.round = 0; this.winner = ''; this.result = null
     this.clearRound()
   }
   clearRound() {
     this.hands = {p1: [], p2: [], p3: [], p4: []}; this.deck = []; this.face = ''; this.bids = {}; this.bidRound = 0; this.hokmBy = ''; this.bidCount = 0
     this.mode = ''; this.trump = ''; this.buyer = ''; this.turn = ''; this.trick = []; this.last = null; this.taken = {a: 0, b: 0}; this.tricks = {a: 0, b: 0}
-    this.projects = {}; this.shown = false; this.belote = ''; this.played = {}
+    this.projects = {}; this.shown = false; this.belote = ''; this.seen = new Set(); this.voids = {p1: new Set(), p2: new Set(), p3: new Set(), p4: new Set()}
   }
   isBot(s) { return Boolean(this.seats[s]?.bot) }
 
@@ -61,7 +61,7 @@ export class BalootRoom extends SocialRoom {
     let n = 1
     for (const s of ORDER) {
       const x = this.seats[s]
-      if (!x.inGame) { Object.assign(x, this.emptySeat(), {token: `bot-${s}-${Date.now()}`, bot: true, name: `بوت ${n++}`}); x.inGame = true; x.alive = true }
+      if (!x.inGame) { const used = new Set(this.bots().map(b => this.seats[b].name)); Object.assign(x, this.emptySeat(), {token: `bot-${s}-${Date.now()}`, bot: true, auto: true, name: BOT_NAMES.find(b => !used.has(b)) || `بوت ${n++}`}); x.inGame = true; x.alive = true }
     }
     this.score = {a: 0, b: 0}; this.round = 0; this.winner = ''; this.result = null; this.log = []
     this.event(`بدأت البلوت: ${this.name('p1')} و${this.name('p3')} ضد ${this.name('p2')} و${this.name('p4')} — أول فريق يوصل ${TARGET} يفوز`, 'start')
@@ -159,6 +159,11 @@ export class BalootRoom extends SocialRoom {
     if (seat !== this.turn) return this.err(seat, 'not_your_turn')
     if (!this.legal(seat).includes(card)) return this.err(seat, this.hands[seat].includes(card) ? 'must_follow' : 'invalid_message')
     this.hands[seat].splice(this.hands[seat].indexOf(card), 1)
+    if (this.trick.length) {
+      const led = suit(this.trick[0].card)
+      if (suit(card) !== led) { this.voids[seat].add(led); if (this.mode === 'hokm' && suit(card) !== this.trump && team(this.winning().seat) !== team(seat)) this.voids[seat].add(this.trump) }
+    }
+    this.seen.add(card)
     this.trick.push({seat, card})
     if (this.trick.length < 4) return this.setTurn(next(seat))
     const w = this.winning()
@@ -233,33 +238,87 @@ export class BalootRoom extends SocialRoom {
   }
 
   // ---- bots (and auto-play when a human's timer runs out) ----
+  /** Rough number of tricks a hand should take in صن. */
+  sunValue(h) {
+    let v = 0
+    for (const x of SUITS) {
+      const has = r => h.includes(r + x), n = h.filter(c => suit(c) === x).length
+      if (has('A')) v += 1
+      if (has('10')) v += has('A') ? 1 : n >= 2 ? .5 : 0
+      if (has('K') && has('A') && has('10')) v += .5
+    }
+    for (const p of findProjects(h, 'sun')) v += p.kind === 'four' ? 2 : p.kind === 'hundred' ? 1 : p.kind === 'fifty' ? .5 : .25
+    return v
+  }
+  /** Rough strength of a hand in حكم with suit `x` as trump. */
+  hokmValue(h, x) {
+    const t = h.filter(c => suit(c) === x), has = r => h.includes(r + x)
+    if (t.length < 2) return 0
+    let v = (has('J') ? 1.6 : 0) + (has('9') ? (has('J') ? 1.1 : .7) : 0) + (has('A') ? .7 : 0) + Math.max(0, t.length - 2) * .5
+    for (const y of SUITS) if (y !== x && h.includes('A' + y)) v += .8
+    if (h.includes('K' + x) && h.includes('Q' + x)) v += .3
+    return v
+  }
   autoBid(s) {
     const h = this.hands[s], faceSuit = suit(this.face)
-    const big = h.filter(c => rank(c) === 'A' || rank(c) === '10').length
     if (!this.isBot(s)) return this.bid(s, 'pass')
-    if (big >= 3) return this.bid(s, 'sun')
+    const sun = this.sunValue([...h, this.face]) - .4
     if (this.bidRound === 1) {
-      const mine = [...h, this.face].filter(c => suit(c) === faceSuit)
-      if (!this.hokmBy && mine.length >= 3 && mine.some(c => rank(c) === 'J' || rank(c) === '9')) return this.bid(s, 'hokm')
+      const hk = this.hokmBy ? 0 : this.hokmValue([...h, this.face], faceSuit)
+      const partnerHokm = this.hokmBy && team(this.hokmBy) === team(s)
+      if (sun >= 3 && sun >= hk && !(partnerHokm && sun < 3.6)) return this.bid(s, 'sun')
+      if (hk >= 3) return this.bid(s, 'hokm')
       return this.bid(s, 'pass')
     }
-    for (const x of SUITS) if (x !== faceSuit) { const m = h.filter(c => suit(c) === x); if (m.length >= 3 && m.some(c => rank(c) === 'J')) return this.bid(s, 'hokm', x) }
+    const best = SUITS.filter(x => x !== faceSuit).map(x => [x, this.hokmValue(h, x) + .3]).sort((a, b) => b[1] - a[1])[0]
+    if (sun >= 2.8 && sun >= best[1]) return this.bid(s, 'sun')
+    if (best[1] >= 3.2) return this.bid(s, 'hokm', best[0])
     return this.bid(s, 'pass')
   }
+
+  /** In-suit strength (trump order for the trump suit). */
+  inSuit(c) { return (this.mode === 'hokm' && suit(c) === this.trump ? HOKM_ORDER : SUN_ORDER).indexOf(rank(c)) }
+  /** Cards `s` cannot see yet: not played and not in its own hand. */
+  unseen(s) { const mine = new Set(this.hands[s]); return SUITS.flatMap(x => RANKS.map(r => r + x)).filter(c => !this.seen.has(c) && !mine.has(c)) }
+  /** No unseen card of the same suit beats it. */
+  isMaster(c, s) { return !this.unseen(s).some(u => suit(u) === suit(c) && this.inSuit(u) > this.inSuit(c)) }
+
+  /** Bot play (and the auto-move for a human whose timer ran out): cash masters, pull trumps, feed the partner, win cheaply. */
   autoCard(s) {
-    const L = this.legal(s)
-    const led = this.trick.length ? suit(this.trick[0].card) : ''
-    const byPow = (a, b) => this.power(a, led || suit(a)) - this.power(b, led || suit(b))
+    const L = this.legal(s), hokm = this.mode === 'hokm', trump = this.trump
+    const opps = ORDER.filter(x => team(x) !== team(s))
+    const low = cards => [...cards].sort((a, b) => this.points(a) - this.points(b) || this.inSuit(a) - this.inSuit(b) || (hokm ? (suit(a) === trump) - (suit(b) === trump) : 0))[0]
     if (!this.trick.length) {
-      const aces = L.filter(c => rank(c) === 'A' && (this.mode !== 'hokm' || suit(c) !== this.trump))
-      if (aces.length) return aces[0]
-      return [...L].sort((a, b) => this.points(a) - this.points(b) || byPow(a, b))[0]
+      const myTrumps = L.filter(c => hokm && suit(c) === trump)
+      const oppTrumps = hokm && this.unseen(s).some(c => suit(c) === trump) && !opps.every(o => this.voids[o].has(trump))
+      if (hokm && team(this.buyer) === team(s) && oppTrumps && myTrumps.length >= 2) { const m = myTrumps.find(c => this.isMaster(c, s)); if (m) return m }
+      const safe = c => !hokm || suit(c) === trump || !opps.some(o => this.voids[o].has(suit(c)))
+      const masters = L.filter(c => (!hokm || suit(c) !== trump) && this.isMaster(c, s) && safe(c)).sort((a, b) => this.points(b) - this.points(a))
+      if (masters.length) return masters[0]
+      // Avoid leading a bare 10 or giving away a trump; lead low from the longest side suit.
+      const side = L.filter(c => (!hokm || suit(c) !== trump) && !(rank(c) === '10' && !this.isMaster(c, s)))
+      const pool = side.length ? side : L
+      const len = x => this.hands[s].filter(c => suit(c) === x).length
+      return [...pool].sort((a, b) => len(suit(b)) - len(suit(a)) || this.points(a) - this.points(b) || this.inSuit(a) - this.inSuit(b))[0]
     }
-    const w = this.winning()
-    if (team(w.seat) === team(s)) return [...L].sort((a, b) => this.points(b) - this.points(a) || byPow(a, b))[0]
-    const best = this.power(w.card, led), beats = L.filter(c => this.power(c, led) > best).sort(byPow)
-    if (beats.length) return beats[0]
-    return [...L].sort((a, b) => this.points(a) - this.points(b) || byPow(a, b))[0]
+    const led = suit(this.trick[0].card), w = this.winning(), last = this.trick.length === 3
+    const pts = this.trick.reduce((n, x) => n + this.points(x.card), 0)
+    if (team(w.seat) === team(s)) {
+      const safeWin = last || (this.isMaster(w.card, s) && (!hokm || suit(w.card) === trump || !opps.some(o => this.voids[o].has(led) && !this.voids[o].has(trump))))
+      if (safeWin) {
+        const give = L.filter(c => !(hokm && suit(c) === trump && this.points(c) >= 11)).sort((a, b) => this.points(b) - this.points(a) || this.inSuit(a) - this.inSuit(b))
+        return give[0] || low(L)
+      }
+      return low(L)
+    }
+    const best = this.power(w.card, led), beats = L.filter(c => this.power(c, led) > best).sort((a, b) => this.power(a, led) - this.power(b, led))
+    if (beats.length) {
+      if (last) return beats[0]
+      const sure = beats.find(c => (hokm && suit(c) === trump && led !== trump) ? true : this.isMaster(c, s))
+      if (sure) return sure
+      if (pts >= 10) return beats[0]
+    }
+    return low(L)
   }
 
   publicSeat(s) {

@@ -7,7 +7,7 @@ export type Item = typeof ITEMS[number]
 export type Role = Seat | 'spectator'
 export type Phase = 'waiting' | 'countdown' | 'live' | 'ended'
 export type Bullet = 'live' | 'blank'
-export type SeatState = { connected: boolean; alive: boolean; score: number; name: string; lives: number; items: Item[]; skip: boolean; double: boolean }
+export type SeatState = { connected: boolean; bot?: boolean; alive: boolean; score: number; name: string; lives: number; items: Item[]; skip: boolean; double: boolean }
 /** Match of three rounds: who won each round so far, and the champion(s) once it is over. */
 export type MatchView = { of: number; winners: (Seat|'')[]; over: boolean; champion: Seat[]; max_lives: number; cap: number }
 /** `live`/`blank` are the counts announced when the rifle was loaded; `total` is what is left. */

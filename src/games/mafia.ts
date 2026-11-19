@@ -30,7 +30,7 @@ const def: GameDef = {
   mood: s => s.phase === 'night' ? 'dark' : s.phase === 'lobby' || s.phase === 'over' ? 'night' : 'day',
 
   seat(id, p, c) {
-    const s = c.state, mine = s.mine || {}, alive = p.inGame ? p.alive : p.connected, meAlive = s.seats[c.me]?.alive && s.seats[c.me]?.inGame
+    const s = c.state, mine = s.mine || {}, alive = p.inGame ? p.alive : p.connected || Boolean(p.bot), meAlive = s.seats[c.me]?.alive && s.seats[c.me]?.inGame
     const role = p.role ? ROLE[p.role] : null
     let cta = '', badges = ''
     const votes = Object.values(s.seats).filter(x => x.vote === id).length

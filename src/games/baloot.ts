@@ -40,7 +40,7 @@ const def: GameDef = {
   id: 'baloot', title: 'بلوت', titleHTML: '<em>بلوت</em>', theme: 'istiraha',
   eyebrow: 'لعبة ورق جماعية · ٤ لاعبين في فريقين · البوت يكمّل الناقص',
   tagline: 'ليلة استراحة، أنوار ملونة وفريقين متقابلين. اشترِ صن أو حكم، العب أكلاتك صح، وخلّ خويك يفهمك بدون كلام.',
-  rules, lineup: ORDER, lobbyNote: 'المقاعد الفاضية يلعبها بوت — تقدرون تبدون حتى لو واحد',
+  rules, lineup: ORDER, lobbyNote: 'البلوت لازم أربعة: أي مقعد فاضي يكمّله بوت تلقائيًا عند البدء',
   timerTotal: p => TOTAL[p] || 30000,
   mood: () => 'night',
 

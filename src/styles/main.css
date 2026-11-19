@@ -381,3 +381,7 @@ button{cursor:pointer}
 .seat .bd i.bid{background:#2a1a10;color:#fff4d6}
 .seat .bd i.bid.buy{background:var(--gold);color:#2a1408}
 .app.baloot .sdock .acts .ghost{min-width:max(52px,6cqw)}
+/* Bot count control (lobby and menu). */
+.bots-row{align-items:center;gap:max(6px,.8cqw)}
+.bots-row .ghost{min-width:max(34px,4cqw);min-height:max(30px,4cqw);font-size:max(16px,2cqw);padding:0}
+.bots-row b{min-width:3em;text-align:center;color:var(--gold)}

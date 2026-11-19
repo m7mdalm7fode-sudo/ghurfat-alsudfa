@@ -15,9 +15,12 @@ const LEVEL=[null,
 const rooms=new Map(), allowed=new Set((process.env.ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean))
 const token=()=>randomBytes(18).toString('base64url'), code=v=>/^[A-Z0-9]{4,8}$/.test(v)?v:''
 const cleanName=v=>String(v||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,14)
-const empty=()=>({token:'',socket:null,disconnectedAt:0,score:0,alive:false,name:'',lives:0,items:[],skip:false,double:false})
-const open=s=>s.socket?.readyState===WebSocket.OPEN
-function seatState(s){return {connected:open(s),alive:s.alive,score:s.score,name:s.name,lives:s.lives,items:[...s.items],skip:s.skip,double:s.double}}
+const empty=()=>({token:'',socket:null,disconnectedAt:0,score:0,alive:false,name:'',lives:0,items:[],skip:false,double:false,bot:false})
+const BOT_NAMES=['بوت سالم','بوت مشعل','بوت فهد','بوت ناصر','بوت بدر']
+const BOT_PACE=Number(process.env.BOT_PACE||1)
+const human=s=>s.socket?.readyState===WebSocket.OPEN
+const open=s=>s.bot||human(s)
+function seatState(s){return {connected:open(s),bot:s.bot,alive:s.alive,score:s.score,name:s.name,lives:s.lives,items:[...s.items],skip:s.skip,double:s.double}}
 function send(ws,p){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(p))}
 const pick=a=>a[Math.floor(Math.random()*a.length)]
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -26,6 +29,31 @@ class Room{
  constructor(id){this.id=id;this.seq=0;this.round=0;this.phase='waiting';this.ends=0;this.turn='';this.winner='';this.notice='';this.last=Date.now();this.chamber=[];this.loaded={live:0,blank:0};this.winners=[];this.over=false;this.champion=[];this.seats=Object.fromEntries(SEATS.map(s=>[s,empty()]));this.watchers=new Set()}
  get level(){return LEVEL[Math.min(ROUNDS,Math.max(1,this.round))]}
  connected(){return SEATS.filter(s=>open(this.seats[s]))}
+ humans(){return SEATS.filter(s=>human(this.seats[s]))}
+ host(){return this.humans()[0]||''}
+ bots(){return SEATS.filter(s=>this.seats[s].bot)}
+ /** Host only: how many bots sit at the table (0 = none). A bot removed mid-round leaves like a disconnect. */
+ setBots(n){n=Math.max(0,Math.min(5,Math.floor(Number(n)||0)))
+  while(this.bots().length>n){const b=this.bots().pop(),x=this.seats[b];const wasTurn=this.turn===b,wasAlive=x.alive;Object.assign(x,empty());if(this.phase==='live'&&wasAlive){if(this.active().length<=1)this.endRound();else if(wasTurn){this.turn=this.next(b);this.ends=Date.now()+TURN_MS}}}
+  while(this.bots().length<n){const free=SEATS.find(s=>!this.seats[s].token);if(!free)break;const used=new Set(this.bots().map(b=>this.seats[b].name));Object.assign(this.seats[free],empty(),{token:'bot-'+token(),bot:true,name:BOT_NAMES.find(x=>!used.has(x))||'بوت'})}
+  this.maybeStart();this.broadcast()}
+ /** One bot decision per call: heal, peek, set up a double or a flip, then shoot whoever the odds favour. */
+ botAct(side){const me=this.seats[side],L=this.level,ch=this.chamber,has=i=>me.items.includes(i)
+  const others=this.active().filter(s=>s!==side),weakest=[...others].sort((a,b)=>this.seats[a].lives-this.seats[b].lives)[0]
+  const live=ch.filter(x=>x==='live').length,p=ch.length?live/ch.length:0
+  const known=this.botPeek===ch.length?this.botKnow:p===1?'live':p===0?'blank':''
+  const use=(item,extra={})=>this.action(side,{action:'item',item,...extra})
+  if(has('dallah')&&me.lives<L.lives)return use('dallah')
+  if(!known&&has('scope')){use('scope');this.botKnow=ch[0];this.botPeek=ch.length;return}
+  if(!known&&has('eject')&&p>.3&&p<.7)return use('eject')
+  if(known==='blank'&&has('flip')&&weakest){use('flip');this.botKnow='live';this.botPeek=ch.length;return}
+  const goLive=known==='live'||(!known&&p>=.5)
+  if(goLive&&has('double')&&!me.double)return use('double')
+  if(goLive&&has('rope')&&others.length>1){const t=others.find(s=>!this.seats[s].skip&&s!==weakest);if(t)return use('rope',{target:t})}
+  if(has('steal')){const t=others.find(s=>this.seats[s].items.some(i=>i==='dallah'||i==='scope'));if(t&&Math.random()<.6){const it=this.seats[t].items.find(i=>i==='dallah'||i==='scope');return use('steal',{target:t,steal:it})}}
+  this.botPeek=-1
+  if(goLive&&weakest)return this.action(side,{action:'shoot',target:weakest})
+  return this.action(side,{action:'self'})}
  active(){return SEATS.filter(s=>this.seats[s].alive&&open(this.seats[s]))}
  claim(ws,resume,name=''){let role='spectator';for(const s of SEATS){const x=this.seats[s];if(resume&&x.token===resume&&(!x.disconnectedAt||Date.now()-x.disconnectedAt<RECONNECT_MS)){role=s;x.socket=ws;x.disconnectedAt=0;if(name)x.name=name;break}}
   if(role==='spectator'){const free=SEATS.find(s=>!this.seats[s].token);if(free){role=free;const x=this.seats[free];x.token=token();x.socket=ws;x.name=name||`لاعب ${SEATS.indexOf(free)+1}`;x.score=0}else{if(this.watchers.size>=MAX_SPECTATORS){ws.close(1013);return}this.watchers.add(ws)}}
@@ -46,7 +74,7 @@ class Room{
   this.ends=Date.now()+TURN_MS;this.broadcast()}
  view(){return {live:this.loaded.live,blank:this.loaded.blank,total:this.chamber.length}}
  snapshot(){this.seq++;return {type:'room',marker:MARKER,room:this.id,seq:this.seq,round:this.round,phase:this.phase,phase_ends_in_ms:this.ends?Math.max(0,this.ends-Date.now()):0,turn:this.turn,seats:Object.fromEntries(SEATS.map(s=>[s,seatState(this.seats[s])])),chamber:this.view(),winner:this.winner,notice:this.notice,match:{of:ROUNDS,winners:[...this.winners],over:this.over,champion:[...this.champion],max_lives:this.level.lives,cap:this.level.cap}}}
- everyone(p){const text=JSON.stringify(p);for(const s of SEATS)if(open(this.seats[s]))this.seats[s].socket.send(text);for(const ws of this.watchers)if(ws.readyState===WebSocket.OPEN)ws.send(text)}
+ everyone(p){const text=JSON.stringify(p);for(const s of SEATS)if(human(this.seats[s]))this.seats[s].socket.send(text);for(const ws of this.watchers)if(ws.readyState===WebSocket.OPEN)ws.send(text)}
  broadcast(){this.everyone(this.snapshot())}
  /** Next living seat after `side`, honouring the rope: a tied player loses one turn. */
  next(side){const alive=this.active();if(!alive.length)return '';let i=SEATS.indexOf(side),skipped=[];for(let n=0;n<12;n++){i=(i+1)%SEATS.length;const s=SEATS[i];if(!alive.includes(s))continue;if(this.seats[s].skip&&s!==side){this.seats[s].skip=false;skipped.push(this.seats[s].name);continue}if(skipped.length)this.notice+=` — ${skipped.join('، ')} مربوط فخسر دوره`;return s}return alive[0]}
@@ -93,6 +121,8 @@ class Room{
   if(this.round>=ROUNDS){const best=Math.max(...SEATS.map(s=>this.seats[s].score));this.champion=best>0?SEATS.filter(s=>this.seats[s].score===best&&this.seats[s].token):[];this.over=true;this.ends=Date.now()+MATCH_END_MS;this.notice=this.champion.length===1?`انتهت المباراة — صاحب آخر فنجال: ${this.seats[this.champion[0]].name}`:'انتهت المباراة بالتعادل'}
   else this.ends=Date.now()+ROUND_END_MS}
  tick(){const now=Date.now();for(const s of SEATS){const x=this.seats[s];if(x.token&&x.disconnectedAt&&now-x.disconnectedAt>RECONNECT_MS)Object.assign(x,empty())}
+  if(this.bots().length&&!SEATS.some(s=>this.seats[s].token&&!this.seats[s].bot)){for(const b of this.bots())Object.assign(this.seats[b],empty());this.phase='waiting';this.ends=0;this.turn='';this.broadcast()}
+  if(this.phase==='live'&&this.turn&&this.seats[this.turn].bot){if(!this.botAt)this.botAt=now+(1100+Math.random()*1200)*BOT_PACE;else if(now>=this.botAt){this.botAt=0;this.botAct(this.turn)}}else this.botAt=0
   if(this.phase==='live'&&this.turn&&this.ends&&now>=this.ends){const late=this.turn;this.notice='';this.action(late,{action:'self'});this.notice=`انتهى وقت ${this.seats[late].name} فأُطلقت عليه — ${this.notice}`;this.broadcast()}
   if(this.phase==='countdown'&&now>=this.ends)this.setupRound()
   else if(this.phase==='ended'&&now>=this.ends){if(this.connected().length>=2){if(this.over)this.newMatch();this.round++;this.phase='countdown';this.ends=now+COUNTDOWN_MS;this.notice=this.round===1?'مباراة جديدة — الجولة 1 من 3':`الجولة ${this.round} من ${ROUNDS} — أصعب`}else{this.phase='waiting';this.ends=0}this.broadcast()}
@@ -104,6 +134,6 @@ const GAMES={fanjal:Room,mafia:MafiaRoom,night:NightRoom,baloot:BalootRoom}
 function room(game,id){const key=`${game}:${id}`;if(!rooms.has(key))rooms.set(key,new GAMES[game](id));return rooms.get(key)}
 const http=createServer((req,res)=>{if(req.url==='/healthz'){res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,marker:MARKER,rooms:rooms.size}));return}res.writeHead(404);res.end('Not found')})
 const wss=new WebSocketServer({noServer:true,maxPayload:4096});http.on('upgrade',(req,socket,head)=>{let u;try{u=new URL(req.url,'http://localhost')}catch{return socket.destroy()}const origin=req.headers.origin;const same=origin&&(()=>{try{return new URL(origin).host===req.headers.host}catch{return false}})();if(origin&&!same&&!allowed.has(origin))return socket.destroy();if(u.pathname!=='/ws')return socket.destroy();const id=code(u.searchParams.get('room')),game=GAMES[u.searchParams.get('game')]?u.searchParams.get('game'):'fanjal';if(!id||(!rooms.has(`${game}:${id}`)&&rooms.size>=MAX_ROOMS))return socket.destroy();wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,u,id,game))})
-wss.on('connection',(ws,u,id,game)=>{const r=room(game,id);r.claim(ws,u.searchParams.get('resume')||'',cleanName(u.searchParams.get('name')));ws.on('message',raw=>{try{const m=JSON.parse(raw);if(m.type==='ping')send(ws,{type:'pong',marker:MARKER,room:id,t:m.t});else if(r.message)r.message(ws,m);else if(m.type==='action'&&ws.role!=='spectator'){r.last=Date.now();r.action(ws.role,m)}}catch{send(ws,{type:'error',marker:MARKER,room:id,code:'invalid_message'})}});ws.on('close',()=>r.release(ws));ws.on('error',()=>r.release(ws))})
-setInterval(()=>{const now=Date.now();for(const [id,r] of rooms){r.tick();if(!r.connected().length&&!r.watchers.size&&now-r.last>IDLE_MS)rooms.delete(id)}},200).unref()
+wss.on('connection',(ws,u,id,game)=>{const r=room(game,id);r.claim(ws,u.searchParams.get('resume')||'',cleanName(u.searchParams.get('name')));ws.on('message',raw=>{try{const m=JSON.parse(raw);if(m.type==='ping')send(ws,{type:'pong',marker:MARKER,room:id,t:m.t});else if(m.type==='bots'&&!r.message){if(ws.role===r.host())r.setBots(m.count)}else if(r.message)r.message(ws,m);else if(m.type==='action'&&ws.role!=='spectator'){r.last=Date.now();r.action(ws.role,m)}}catch{send(ws,{type:'error',marker:MARKER,room:id,code:'invalid_message'})}});ws.on('close',()=>r.release(ws));ws.on('error',()=>r.release(ws))})
+setInterval(()=>{const now=Date.now();for(const [id,r] of rooms){r.tick();if(!(r.humans?r.humans():r.connected()).length&&!r.watchers.size&&now-r.last>IDLE_MS)rooms.delete(id)}},200).unref()
 http.listen(PORT,HOST,()=>console.log(JSON.stringify({marker:MARKER,status:'listening',host:HOST,port:http.address().port})))

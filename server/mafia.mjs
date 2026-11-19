@@ -97,6 +97,28 @@ export class MafiaRoom extends SocialRoom {
     else if (this.phase === 'verdict') { if (!this.checkWin()) this.toNight() }
     else if (this.phase === 'over') this.toLobby()
   }
+  /** Bot play: the mafia agree on one victim, the doctor and detective act, and the day vote follows evidence. */
+  botMove(s) {
+    const r = this.role[s], live = this.living(), others = live.filter(x => x !== s), rnd = a => a.length ? pick(a) : ''
+    if (this.phase === 'night') {
+      if (r === 'mafia' && !this.kills[s]) { const agreed = Object.values(this.kills)[0]; const t = agreed || rnd(others.filter(x => this.role[x] !== 'mafia')); return t ? {kind: 'kill', target: t} : null }
+      if (r === 'doctor' && !this.save) { const t = Math.random() < .35 && s !== this.lastSave ? s : rnd(live.filter(x => x !== this.lastSave)); return t ? {kind: 'save', target: t} : null }
+      if (r === 'detective' && !this.check) { const done = new Set(this.checks[s].map(c => c.seat)); const t = rnd(others.filter(x => !done.has(x))) || rnd(others); return t ? {kind: 'check', target: t} : null }
+      return null
+    }
+    if (this.phase === 'day') return !this.ready.has(s) && Math.random() < .25 ? {kind: 'ready'} : null
+    if (this.phase === 'vote' && !this.votes[s]) {
+      if (r === 'detective') { const bad = this.checks[s].find(c => c.mafia && this.seats[c.seat].alive); if (bad) return {kind: 'vote', target: bad.seat} }
+      if (r === 'mafia') return {kind: 'vote', target: rnd(others.filter(x => this.role[x] !== 'mafia')) || 'skip'}
+      const cleared = new Set(r === 'detective' ? this.checks[s].filter(c => !c.mafia).map(c => c.seat) : [])
+      const tally = {}
+      for (const v of Object.values(this.votes)) if (v !== 'skip' && v !== s) tally[v] = (tally[v] || 0) + 1
+      const lead = Object.keys(tally).sort((a, b) => tally[b] - tally[a]).find(x => !cleared.has(x))
+      if (lead && Math.random() < .6) return {kind: 'vote', target: lead}
+      return Math.random() < .25 ? {kind: 'vote', target: 'skip'} : {kind: 'vote', target: rnd(others.filter(x => !cleared.has(x))) || 'skip'}
+    }
+    return null
+  }
   chatAudience(seat) {
     const x = this.seats[seat]
     if (this.phase === 'night' && x.inGame && x.alive) return this.role[seat] === 'mafia' ? {to: this.players().filter(s => this.role[s] === 'mafia'), scope: 'team'} : null

@@ -339,6 +339,47 @@ export class NightRoom extends SocialRoom {
     }
   }
 
+  // ---------- bots ----------
+  /** Bot play from its own seat: traitors hunt the village; villagers accuse whoever looks guilty. */
+  botMove(s) {
+    const traitor = this.traitor.has(s), live = this.living(), others = live.filter(x => x !== s), rnd = a => a.length ? pick(a) : ''
+    const prey = others.filter(x => !(traitor && this.traitor.has(x)))
+    const hid = this.hidden(s), byKind = k => hid.find(c => c.kind === k)
+    switch (this.phase) {
+      case 'dawn': return traitor && !this.catVotes[s] ? {kind: 'cat', target: Object.values(this.catVotes)[0] || rnd(prey)} : null
+      case 'kill':
+        if (traitor && !this.killVotes[s]) return {kind: 'kill', target: Object.values(this.killVotes)[0] || rnd(prey)}
+        if (this.guards().includes(s) && !this.guardBy[s]) return {kind: 'guard', target: rnd(prey)}
+        return null
+      case 'confess': {
+        if (this.exempt(s) || this.confess[s]) return null
+        const safe = byKind('ok') || byKind('old')
+        return safe && hid.length > 1 && Math.random() < .55 ? {kind: 'confess', card: safe.id} : {kind: 'confess', card: 'risk'}
+      }
+      case 'choose':
+        if (this.pending?.who !== s) return null
+        return {kind: 'reveal', card: (byKind('ok') || byKind('old') || hid[0]).id}
+      case 'turn': {
+        if (this.turn !== s || this.toDraw) return null
+        // Suspicion: peeked traitors first, then whoever already carries the most accusations.
+        const seen = new Map((this.peeks[s] || []).map(p => [p.seat, p.kind]))
+        const score = x => (seen.get(x) === 'traitor' ? 50 : seen.get(x) === 'ok' ? -20 : 0) + (this.accused[x] || 0) * 2 + Math.random() * 3
+        const targets = (traitor ? prey : others.filter(x => !(this.traitor.has(s) && this.traitor.has(x)))).filter(x => !this.has(x, 'fort')).sort((a, b) => score(b) - score(a))
+        const hand = this.hand[s], card = k => hand.find(c => c.kind === k)
+        if (card('accuse') && targets[0] && (!this.played || Math.random() < .7)) return {kind: 'play', card: card('accuse').id, target: targets[0]}
+        if (!this.played) {
+          if (!traitor && card('peek')) { const t = rnd(others.filter(x => this.char[x] !== 'p6' && this.hidden(x).length && !seen.has(x))); if (t) return {kind: 'play', card: card('peek').id, target: t} }
+          if (card('help')) { const friend = rnd(others.filter(x => this.accused[x] >= 3 && (traitor ? this.traitor.has(x) : seen.get(x) === 'ok'))); if (friend) return {kind: 'play', card: card('help').id, target: friend} }
+          if (card('wind') && targets[0]) return {kind: 'play', card: card('wind').id, target: targets[0]}
+          if (this.char[s] === 'p9' && !this.used[s] && this.accused[s] >= 4) return {kind: 'ability'}
+          return {kind: 'draw'}
+        }
+        return {kind: 'end'}
+      }
+    }
+    return null
+  }
+
   // ---------- views ----------
   publicSeat(s, viewer) {
     if (!this.seats[s].inGame) return {}

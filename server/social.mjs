@@ -1,10 +1,12 @@
-// Shared room plumbing for the table games with hidden roles («الذيابة» and «القطوة السوداء»):
+// Shared room plumbing for the table games («الذيابة» and «القطوة السوداء»):
 // seats and resume tokens, a host who starts the game from the lobby, chat, a public event log,
 // and a per-player view (each socket only ever receives what that player is allowed to know).
 import {randomBytes} from 'node:crypto'
 import {WebSocket} from 'ws'
 
 export const MARKER = 'chamber6-v3'
+const BOT_SPEED = Number(process.env.SOCIAL_SPEED || 1)
+export const BOT_NAMES = ['بوت سالم', 'بوت مشعل', 'بوت فهد', 'بوت ناصر', 'بوت بدر', 'بوت ماجد', 'بوت تركي', 'بوت سعود', 'بوت خالد', 'بوت فيصل', 'بوت راشد']
 const RECONNECT_MS = 90000, MAX_SPECTATORS = 8, CHAT_GAP_MS = 600
 export const token = () => randomBytes(18).toString('base64url')
 export const isOpen = s => s?.socket?.readyState === WebSocket.OPEN
@@ -22,6 +24,31 @@ export class SocialRoom {
   }
   emptySeat() { return {token: '', socket: null, disconnectedAt: 0, name: '', inGame: false, alive: false, lastChat: 0} }
   connected() { return this.seatIds.filter(s => isOpen(this.seats[s])) }
+  /** People and bots sitting in the lobby. */
+  present() { return this.seatIds.filter(s => isOpen(this.seats[s]) || this.seats[s].bot) }
+  bots() { return this.seatIds.filter(s => this.seats[s].bot) }
+  /** Host only, in the lobby: set how many bots sit in free seats (0 = none). */
+  setBots(n) {
+    n = Math.max(0, Math.min(this.seatIds.length - 1, Math.floor(Number(n) || 0)))
+    while (this.bots().length > n) { const b = this.bots().pop(); Object.assign(this.seats[b], this.emptySeat()) }
+    while (this.bots().length < n) {
+      const free = this.seatIds.find(s => !this.seats[s].token); if (!free) break
+      const used = new Set(this.bots().map(b => this.seats[b].name)), name = BOT_NAMES.find(x => !used.has(x)) || `بوت ${this.bots().length + 1}`
+      Object.assign(this.seats[free], this.emptySeat(), {token: `bot-${free}-${token()}`, bot: true, name})
+    }
+  }
+  /** Every bot that may act now gets a turn to think, at a human-looking pace. */
+  botTick(now) {
+    if (this.phase === 'lobby' || this.phase === 'over') return
+    for (const s of this.seatIds) {
+      const x = this.seats[s]
+      if (!x.bot || !x.inGame || !x.alive || now < (x.botAt || 0)) continue
+      x.botAt = now + (900 + Math.random() * 1600) * BOT_SPEED
+      let m = null
+      try { m = this.botMove(s) } catch (e) { console.error('bot', this.game, e) }
+      if (m) { this.act(s, m); this.broadcast() }
+    }
+  }
   players() { return this.seatIds.filter(s => this.seats[s].inGame) }
   living() { return this.players().filter(s => this.seats[s].alive) }
   host() { return this.connected()[0] || '' }
@@ -34,7 +61,9 @@ export class SocialRoom {
       if (resume && x.token === resume) { role = s; x.socket = ws; x.disconnectedAt = 0; if (name) x.name = name; break }
     }
     if (role === 'spectator') {
-      const free = this.seatIds.find(s => !this.seats[s].token)
+      let free = this.seatIds.find(s => !this.seats[s].token)
+      // A person arriving in the lobby takes a bot's seat when the room is full.
+      if (!free && this.phase === 'lobby') { free = this.bots().pop(); if (free) Object.assign(this.seats[free], this.emptySeat()) }
       if (free) { role = free; const x = this.seats[free]; Object.assign(x, this.emptySeat(), {token: token(), socket: ws, name: name || `ضيف ${this.seatIds.indexOf(free) + 1}`}) }
       else { if (this.watchers.size >= MAX_SPECTATORS) { ws.close(1013); return } this.watchers.add(ws) }
     }
@@ -58,9 +87,14 @@ export class SocialRoom {
     if (m.type === 'start') {
       if (this.phase !== 'lobby') return this.err(seat, 'not_ready')
       if (seat !== this.host()) return this.err(seat, 'not_host')
-      if (this.connected().length < this.min) return this.err(seat, 'need_players')
-      for (const s of this.seatIds) { const x = this.seats[s]; x.inGame = isOpen(x); x.alive = x.inGame }
+      if (this.present().length < this.min) return this.err(seat, 'need_players')
+      for (const s of this.seatIds) { const x = this.seats[s]; x.inGame = isOpen(x) || Boolean(x.bot); x.alive = x.inGame }
       this.start(); this.broadcast(); return
+    }
+    if (m.type === 'bots') {
+      if (this.phase !== 'lobby') return this.err(seat, 'not_ready')
+      if (seat !== this.host()) return this.err(seat, 'not_host')
+      this.setBots(m.count); this.broadcast(); return
     }
     if (m.type === 'chat') return this.chat(seat, cleanText(m.text))
     if (m.type === 'act') { this.act(seat, m); this.broadcast() }
@@ -89,7 +123,7 @@ export class SocialRoom {
     for (const s of this.seatIds) {
       const x = this.seats[s]
       if (!x.token) continue
-      seats[s] = {name: x.name, connected: isOpen(x), inGame: x.inGame, alive: x.alive, ...this.publicSeat(s, seat)}
+      seats[s] = {name: x.name, connected: isOpen(x), bot: Boolean(x.bot), inGame: x.inGame, alive: x.alive, ...this.publicSeat(s, seat)}
     }
     const log = this.log.filter(e => !e.to || (seat && e.to.includes(seat))).slice(-30).map(({id, text, kind}) => ({id, text, kind}))
     return {type: 'state', marker: MARKER, room: this.id, game: this.game, seq: ++this.seq, phase: this.phase, ends_in: this.ends ? Math.max(0, this.ends - Date.now()) : 0,
@@ -106,6 +140,7 @@ export class SocialRoom {
       const x = this.seats[s]
       if (x.token && x.disconnectedAt && now - x.disconnectedAt > RECONNECT_MS && !(x.inGame && x.alive && this.phase !== 'lobby' && this.phase !== 'over')) { Object.assign(x, this.emptySeat()); this.broadcast() }
     }
+    this.botTick(now)
     if (this.phase !== 'lobby' && this.ends && now >= this.ends) { this.ends = 0; this.timeout(); this.broadcast() }
     // Everyone left mid-game: back to the lobby.
     if (this.phase !== 'lobby' && !this.connected().length) this.toLobby()
@@ -119,4 +154,5 @@ export class SocialRoom {
   publicSeat() { return {} }
   publicView() { return {} }
   privateView() { return {} }
+  botMove() { return null }
 }

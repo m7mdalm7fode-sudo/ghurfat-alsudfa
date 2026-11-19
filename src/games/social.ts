@@ -194,7 +194,7 @@ export function mountSocial(def: GameDef) {
     const ids = Object.keys(s.seats).filter(id => s.seats[id].inGame || s.phase === 'lobby' || s.seats[id].connected)
     const seats: CampSeat[] = ids.map(id => {
       const p = s.seats[id]
-      return {id, char: id, name: p.name, present: true, alive: s.phase === 'lobby' || !p.inGame ? p.connected : p.alive, me: id === me, turn: false, cta: '', tag: '', badges: '', dim: !p.connected && !p.bot, ...def.seat(id, p, c)}
+      return {id, char: id, name: p.name, present: true, alive: s.phase === 'lobby' || !p.inGame ? p.connected || Boolean(p.bot) : p.alive, me: id === me, turn: false, cta: '', tag: '', badges: '', dim: !p.connected && !p.bot, ...def.seat(id, p, c)}
     })
     camp.mood = def.mood(s)
     camp.update(seats, me)
@@ -219,8 +219,9 @@ export function mountSocial(def: GameDef) {
     // Lobby: who is here, invite, and the host's start button.
     lobby.hidden = s.phase !== 'lobby'
     if (s.phase === 'lobby') {
-      const n = Object.values(s.seats).filter(p => p.connected).length, host = s.host === me
-      setHTML(lobby, `<b>${def.title}</b><span>في المجلس ${n} من ${s.max} ${s.min > 1 ? ` — تحتاجون ${s.min} على الأقل` : ''}</span>${def.lobbyNote ? `<span class="muted">${def.lobbyNote}</span>` : ''}
+      const n = Object.values(s.seats).filter(p => p.connected || p.bot).length, host = s.host === me, bots = Object.values(s.seats).filter(p => p.bot).length
+      const botRow = host ? `<div class="row bots-row"><span>🤖 البوتات:</span><button class="ghost" data-action="bots" data-n="${bots - 1}" ${bots ? '' : 'disabled'} aria-label="شيل بوت">−</button><b>${bots || 'بدون'}</b><button class="ghost" data-action="bots" data-n="${bots + 1}" ${n < s.max ? '' : 'disabled'} aria-label="أضف بوت">+</button></div>` : bots ? `<span class="muted">🤖 معكم ${bots} بوت</span>` : ''
+      setHTML(lobby, `<b>${def.title}</b><span>في المجلس ${n} من ${s.max} ${s.min > 1 ? ` — تحتاجون ${s.min} على الأقل` : ''}</span>${def.lobbyNote ? `<span class="muted">${def.lobbyNote}</span>` : ''}${botRow}
        <div class="row"><button class="ghost" data-action="invite">📨 ادعُ أصحابك</button>${host ? `<button class="primary small" data-action="start" ${n < s.min ? 'disabled' : ''}>▶ ابدأ اللعبة</button>` : `<span class="muted">بانتظار ${esc(s.seats[s.host]?.name || 'المضيف')} ليبدأ…</span>`}</div>`)
     }
     $('.room-label').textContent = room
@@ -255,6 +256,7 @@ export function mountSocial(def: GameDef) {
     else if (a === 'chat') { chatPop.hidden = !chatPop.hidden; chatOpen = !chatPop.hidden; menuPop.hidden = true; if (chatOpen) { unread = 0; showUnread(); chatLog.scrollTop = chatLog.scrollHeight; $<HTMLInputElement>('.chat-form input').focus() } }
     else if (a === 'retry') connect()
     else if (a === 'start') connection.send(JSON.stringify({type: 'start'}))
+    else if (a === 'bots') connection.send(JSON.stringify({type: 'bots', count: Number(el.dataset.n)}))
     else if (a === 'invite') { const url = inviteUrl(room); if (navigator.share && matchMedia('(pointer: coarse)').matches) navigator.share({title: def.title, text: `انضم إلى مجلسي في ${def.title} — الرمز ${room}`, url}).catch(() => {}); else navigator.clipboard?.writeText(url).then(() => say('تم نسخ رابط الدعوة'), () => say(url)) }
     else if (a === 'sound') { prefs.sound = !prefs.sound; applyPrefs() }
     else if (a === 'calm') { prefs.calm = !prefs.calm; applyPrefs() }

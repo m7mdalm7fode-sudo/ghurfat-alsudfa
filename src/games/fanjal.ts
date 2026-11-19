@@ -73,7 +73,9 @@ export async function mountFanjal(){
   <div class="hudx gun-dock chip" aria-label="البندقية"><div class="loaded"></div><div class="peek" hidden></div></div>
   <div class="hudx items-dock" aria-label="أدواتك"><div class="items"></div></div>
   <div class="hudx pick-pop chip" hidden><span class="act-hint"></span><span class="target-picker"></span></div>
+  <div class="hudx lobby-card chip fanjal-wait" hidden></div>
   <div class="hudx menu-pop chip" hidden>
+   <div class="bots-slot"></div>
    <div class="row"><b class="room-label"></b><span class="conn-text">غير متصل</span></div>
    <div class="row"><button class="ghost" data-action="invite">📨 نسخ الدعوة</button><button class="ghost toggle" data-action="sound" aria-pressed="true">🔊 الصوت</button><button class="ghost toggle" data-action="calm" aria-pressed="false">حركة أقل</button><button class="ghost" data-action="leave">🚪 خروج</button></div>
    <ol class="log" aria-label="ما حدث"></ol>
@@ -212,6 +214,13 @@ export async function mountFanjal(){
   const live=s.phase==='live',mine=live&&s.turn===role,me=role==='spectator'?null:s.seats[role]
   const connected=SEATS.filter(x=>s.seats[x].connected).length
   renderMatch(s)
+  // Bots: the host (first person at the table) can add or remove them; a bot plays its own turns.
+  const bots=SEATS.filter(x=>s.seats[x].bot).length,host=SEATS.find(x=>s.seats[x].connected&&!s.seats[x].bot)===role
+  const botRow=host?`<div class="row bots-row"><span>🤖 البوتات:</span><button class="ghost" data-action="bots" data-n="${bots-1}" ${bots?'':'disabled'} aria-label="شيل بوت">−</button><b>${bots||'بدون'}</b><button class="ghost" data-action="bots" data-n="${bots+1}" ${connected<6?'':'disabled'} aria-label="أضف بوت">+</button></div>`:''
+  const slot=$('.bots-slot');if(slot.dataset.html!==botRow){slot.dataset.html=botRow;slot.innerHTML=botRow}
+  const wait=$('.fanjal-wait');wait.hidden=s.phase!=='waiting'||role==='spectator'
+  const waitHTML=`<b>آخر فنجال</b><span>${connected<2?'تحتاج لاعبًا ثانيًا على الأقل — ادعُ أصحابك أو أضف بوت':'سيبدأ اللعب قريبًا'}</span><div class="row"><button class="ghost" data-action="invite">📨 ادعُ أصحابك</button></div>${botRow||(bots?`<span class="muted">🤖 معكم ${bots} بوت</span>`:'')}`
+  if(!wait.hidden&&wait.dataset.html!==waitHTML){wait.dataset.html=waitHTML;wait.innerHTML=waitHTML}
   phase.textContent=s.phase==='waiting'?`بانتظار اللاعبين (${connected}/6)`:s.phase==='countdown'?`الجولة ${s.round} من ${s.match.of}`:s.phase==='ended'?(s.match.over?'انتهت المباراة':`انتهت الجولة ${s.round}`):mine?'دورك — اضغط 🎯':`دور ${nameOf(s.turn)}`
   phase.className=`phase ${mine?'mine':live?'other':s.phase}`
   notice.textContent=s.phase==='waiting'?(connected<2?'شارك رابط الدعوة — تحتاج لاعبًا آخر على الأقل.':'سيبدأ اللعب قريبًا.'):s.notice||(mine?'أطلق على نفسك أو على لاعب، أو استخدم أداة.':role==='spectator'?'أنت تشاهد هذه الطاولة.':'انتظر دورك وراقب الطاولة.')
@@ -257,6 +266,7 @@ export async function mountFanjal(){
   const a=el.dataset.action
   if(a==='play'){const input=$<HTMLInputElement>('.room-input');room=sanitizeRoom(input.value)||generateRoom();input.value=room;writeRoom(room);writeText(NAME_KEY,cleanName($<HTMLInputElement>('.name-input').value));view.classList.add('is-live');title.classList.remove('is-active');showGame(true);menuPop.hidden=true;$('.room-label').textContent=room;landscape();connect()}
   else if(a==='menu'){menuPop.hidden=!menuPop.hidden}
+  else if(a==='bots'){if(!connection.send(JSON.stringify({type:'bots',count:Number(el.dataset.n)})))say('الاتصال غير جاهز بعد')}
   else if(a==='retry')connect()
   else if(a==='invite'){const url=inviteUrl(room);const done=()=>say('تم نسخ رابط الدعوة');if(navigator.share&&matchMedia('(pointer: coarse)').matches)navigator.share({title:GAME,text:`انضم إلى مجلسي في ${GAME} — الرمز ${room}`,url}).catch(()=>{});else navigator.clipboard?.writeText(url).then(done,()=>say(url))}
   else if(a==='sound'){prefs.sound=!prefs.sound;applyPrefs()}
