@@ -531,3 +531,29 @@ button{cursor:pointer}
 .bt .felt{left:14%;right:14%;top:10%;bottom:21%;
   background:radial-gradient(ellipse at 50% 36%,#3a8456,#22603b 55%,#164029);
   box-shadow:0 0 0 6px #4a2410,0 0 0 9px #c8923a,0 0 0 12px #2a1208,0 16px 34px rgba(0,0,0,.7),inset 0 0 50px rgba(0,0,0,.45)}
+/* Calm table: dark slate room, muted green felt, soft brass — no strong colours or busy patterns. */
+.bt{background:radial-gradient(ellipse 75% 65% at 50% 42%,#26343a 0%,#1a2428 55%,#111719 100%)}
+.bt::before{display:none}
+.bt .rug{display:none}
+.bt .felt{left:12%;right:12%;top:9%;bottom:20%;border-radius:50%/44%;
+  background:radial-gradient(ellipse at 50% 35%,#35574a 0%,#2a473c 55%,#20372f 100%);
+  box-shadow:0 0 0 5px #2b2620,0 0 0 7px #8f7c5a,0 0 0 10px #1d1a16,0 18px 40px rgba(0,0,0,.55),inset 0 0 60px rgba(0,0,0,.35)}
+.bt .felt::after{border:1px solid rgba(220,205,170,.12)}
+.bt .pl.ours{--ring:#c9ad73}.bt .pl.theirs{--ring:#8aa3bb}
+.bt .pl.turn .av{box-shadow:0 0 0 3px #e6d3a3,0 0 0 5px #000,0 0 18px 4px rgba(230,211,163,.35)}
+.bt .pl.turn .av::after{background:conic-gradient(#e6d3a3 calc(var(--tp,1) * 1turn),rgba(0,0,0,.3) 0)}
+.bt .pl .nm{background:rgba(12,16,18,.82);color:#e9e2d2}
+.bt .tags .buy{background:#d9c08a;color:#2a2214}
+.bt .tags .proj{background:#4f7a62}
+.bt .backs i{background:repeating-linear-gradient(45deg,#4e3a3e 0 3px,#43323a 3px 6px);box-shadow:0 0 0 1.5px #d8d0c0,0 0 0 2.5px #000}
+.pc.back{background:repeating-linear-gradient(45deg,#4e3a3e 0 5px,#43323a 5px 10px)}
+.pc.win{box-shadow:0 0 0 3px #e6d3a3,0 0 18px 3px rgba(230,211,163,.6)}
+.bt .hc.ok .pc{box-shadow:0 0 0 2px #e6d3a3,0 0 12px 2px rgba(230,211,163,.45),0 4px 8px rgba(0,0,0,.45)}
+.bt .bb.sun{background:#d9c08a;color:#2a2214}
+.bt .bb.hokm{background:#f2eee6;color:#1d1d26}
+.bt .bb.pass{background:#2e3a3f;color:#e9e2d2}
+.bt .cap{background:rgba(12,16,18,.88);color:#e6d3a3}
+.bt .sb{background:rgba(12,16,18,.85);box-shadow:0 0 0 1px #8f7c5a,0 4px 12px rgba(0,0,0,.45)}
+.bt .sb .us b{color:#e6d3a3}.bt .sb .them b{color:#a9bfd4}
+.bt .bscore{background:rgba(14,19,21,.95);box-shadow:0 0 0 1px #8f7c5a,0 10px 30px rgba(0,0,0,.55)}
+.app.baloot .toast{background:rgba(12,16,18,.9);box-shadow:0 0 0 1px #8f7c5a}
