@@ -41,6 +41,8 @@ export type GameDef = {
   center?(ctx: Ctx): string
   /** Seats go counter-clockwise: the next player sits on your right (بلوت). */
   ccw?: boolean
+  /** A full custom table drawn in HTML instead of the campfire scene (card games). */
+  scene?(ctx: Ctx): string
   /** Extra line in the lobby card. */
   lobbyNote?: string
 }
@@ -88,6 +90,7 @@ export function mountSocial(def: GameDef) {
    <div class="side"><button class="ibtn" data-action="menu" aria-label="القائمة">☰</button><button class="ibtn chat-btn" data-action="chat" aria-label="الدردشة">💬<i class="unread" hidden></i></button><span class="status-dot"></span><button class="role-chip chip" data-action="menu" title="دورك — اضغط للتفاصيل"></button></div>
    <div class="turn chip"><div class="phase">…</div><div class="timer"><i></i></div><div class="notice"></div></div>
   </div>
+  <div class="scene" hidden></div>
   <div class="hudx sdock"></div>
   <div class="hudx yourturn" aria-live="assertive"></div>
   <div class="hudx table-center"></div>
@@ -199,6 +202,7 @@ export function mountSocial(def: GameDef) {
       const p = s.seats[id]
       return {id, char: id, name: p.name, present: true, alive: s.phase === 'lobby' || !p.inGame ? p.connected || Boolean(p.bot) : p.alive, me: id === me, turn: false, cta: '', tag: '', badges: '', dim: !p.connected && !p.bot, ...def.seat(id, p, c)}
     })
+    if (def.scene) { const sc = $('.scene'); sc.hidden = false; setHTML(sc, def.scene(c)); camp.setActive(false) }
     camp.mood = def.mood(s)
     camp.update(seats, me)
     phase.textContent = def.phaseText(c)
@@ -273,6 +277,7 @@ export function mountSocial(def: GameDef) {
   const frame = (now: number) => {
     if (state && endsAt && state.phase !== 'lobby') {
       const left = Math.max(0, endsAt - now), total = def.timerTotal(state.phase)
+      if (def.scene) root.querySelector<HTMLElement>('.app')!.style.setProperty('--tp', String(Math.min(1, left / total)))
       timer.style.setProperty('--p', String(Math.min(1, left / total)))
       timer.classList.toggle('on', left > 0)
       timer.classList.toggle('low', left < 8000)
