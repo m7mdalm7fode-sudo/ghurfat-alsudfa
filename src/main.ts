@@ -42,3 +42,24 @@ async function boot() {
   hub()
 }
 boot().catch(e => { console.error(e); document.querySelector('#ui')!.innerHTML = `<div class="fatal">تعذر تشغيل اللعبة: ${esc(String(e))}</div>` })
+
+/** When a newer build is published, offer a one-tap reload (GitHub Pages lets browsers cache the page for 10 minutes). */
+function watchForUpdate() {
+  const current = [...document.scripts].map(s => s.src).find(s => /assets\/index-/.test(s)) || ''
+  if (!current) return
+  const check = async () => {
+    try {
+      const html = await (await fetch(`${location.pathname}?v=${Date.now()}`, {cache: 'no-store'})).text()
+      const latest = html.match(/assets\/index-[^"']+\.js/)?.[0]
+      if (latest && !current.includes(latest) && !document.querySelector('.update-bar')) {
+        const b = document.createElement('button')
+        b.className = 'update-bar'; b.textContent = '✨ فيه تحديث جديد — اضغط للتحديث'
+        b.onclick = () => location.reload()
+        document.body.appendChild(b)
+      }
+    } catch { /* offline */ }
+  }
+  window.setInterval(check, 60000)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check() })
+}
+watchForUpdate()

@@ -557,3 +557,4 @@ button{cursor:pointer}
 .bt .sb .us b{color:#e6d3a3}.bt .sb .them b{color:#a9bfd4}
 .bt .bscore{background:rgba(14,19,21,.95);box-shadow:0 0 0 1px #8f7c5a,0 10px 30px rgba(0,0,0,.55)}
 .app.baloot .toast{background:rgba(12,16,18,.9);box-shadow:0 0 0 1px #8f7c5a}
+.update-bar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:99999;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:800;background:#e6d3a3;color:#1d1a14;box-shadow:0 0 0 2px #000,0 6px 18px rgba(0,0,0,.5);cursor:pointer}
