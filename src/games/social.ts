@@ -20,6 +20,8 @@ export type SocialState = {
 export type Ctx = {
   me: string; state: SocialState; sel: Record<string, any>
   send(m: Record<string, unknown>): void; say(text: string): void; sfx(n: Sfx): void; render(): void; camp: Camp
+  /** Speak a short call aloud with the device's Arabic voice (only when sound is on). */
+  speak(text: string): void
 }
 export type GameDef = {
   id: 'mafia' | 'night' | 'baloot'; title: string; titleHTML: string; eyebrow: string; tagline: string; rules: string; theme: Theme
@@ -121,8 +123,15 @@ export function mountSocial(def: GameDef) {
   let toastTimer = 0
   const say = (text: string) => { toast.textContent = text; toast.classList.add('on'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => toast.classList.remove('on'), 2800) }
   const sfx = (n: Sfx) => { if (prefs.sound) audio?.play(n) }
+  let voice: SpeechSynthesisVoice | null = null
+  const pickVoice = () => { try { const vs = speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith('ar')); voice = vs.find(v => /sa/i.test(v.lang) && /maged|male|majed|naayf|hamed/i.test(v.name)) || vs.find(v => /sa/i.test(v.lang)) || vs[0] || null } catch { voice = null } }
+  try { pickVoice(); speechSynthesis.addEventListener?.('voiceschanged', pickVoice) } catch { /* no speech */ }
+  const speak = (text: string) => {
+    if (!prefs.sound || !text) return
+    try { const u = new SpeechSynthesisUtterance(text); u.lang = voice?.lang || 'ar-SA'; if (voice) u.voice = voice; u.rate = 1.05; u.pitch = .95; speechSynthesis.speak(u) } catch { /* no speech */ }
+  }
   const send = (m: Record<string, unknown>) => { if (!connection.send(JSON.stringify(m))) say('الاتصال غير جاهز بعد') }
-  const ctx = (): Ctx | null => state ? {me, state, sel, send: m => send({type: 'act', ...m}), say, sfx, render: () => render(), camp} : null
+  const ctx = (): Ctx | null => state ? {me, state, sel, send: m => send({type: 'act', ...m}), say, sfx, render: () => render(), camp, speak} : null
 
   function applyPrefs() {
     document.documentElement.classList.toggle('calm', prefs.calm); camp.calm = demo.calm = prefs.calm
@@ -252,7 +261,7 @@ export function mountSocial(def: GameDef) {
   root.addEventListener('click', e => {
     const el = (e.target as HTMLElement).closest<HTMLElement>('[data-action],[data-card],[data-pick]')
     if (!el) return
-    if (!audio) { try { audio = new Audio(); audio.setVolumes(0, .9) } catch { audio = null } }
+    if (!audio) { try { audio = new Audio(); audio.setVolumes(0, .9) } catch { audio = null } try { speechSynthesis.speak(new SpeechSynthesisUtterance(' ')) } catch { /* unlock speech on iOS */ } }
     audio?.unlock()
     const a = el.dataset.action
     if (a === 'play') {
@@ -271,7 +280,7 @@ export function mountSocial(def: GameDef) {
     else { const c = ctx(); if (c) def.onAction(el, c) }
   })
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { for (const k of Object.keys(sel)) delete sel[k]; render() } })
-  window.setInterval(() => { if (view.classList.contains('is-live') && !document.hidden && Math.random() < .3) sfx('crackle') }, 160)
+  window.setInterval(() => { if (!def.scene && view.classList.contains('is-live') && !document.hidden && Math.random() < .3) sfx('crackle') }, 160)
 
   title.classList.add('is-active')
   const frame = (now: number) => {

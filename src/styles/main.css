@@ -509,3 +509,25 @@ button{cursor:pointer}
 .bt .tk.l{transform:translate(-160%,-50%) rotate(-8deg)}
 .bt .tk.r{transform:translate(60%,-50%) rotate(8deg)}
 .bt .cap{bottom:-30%}
+/* Majlis background: wooden floor, a carpet with a sadu border, lamp light over the table. */
+.bt{background:
+    radial-gradient(ellipse 70% 60% at 50% 42%,rgba(255,196,120,.22),transparent 70%),
+    radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.6)),
+    repeating-linear-gradient(90deg,#2c1a0f 0 58px,#1f1209 58px 60px,#31200f 60px 118px,#1f1209 118px 120px),
+    #26160c}
+.bt::before{display:none}
+.bt .rug{position:absolute;left:5%;right:5%;top:3%;bottom:-4%;border-radius:6px;
+  background:
+    radial-gradient(circle at 50% 46%,rgba(232,184,74,.18) 0 18%,transparent 19% 28%,rgba(232,184,74,.12) 29% 30%,transparent 31%),
+    repeating-linear-gradient(45deg,rgba(0,0,0,.12) 0 2px,transparent 2px 22px),
+    repeating-linear-gradient(-45deg,rgba(0,0,0,.12) 0 2px,transparent 2px 22px),
+    linear-gradient(#7a1f26,#5c161c);
+  box-shadow:inset 0 0 0 5px #1a0b08,inset 0 0 0 8px #e8dcc0,inset 0 0 0 11px #1a0b08,inset 0 0 0 22px #a3202c,inset 0 0 0 25px #1a0b08,inset 0 0 60px rgba(0,0,0,.55),0 10px 30px rgba(0,0,0,.6)}
+/* Sadu triangles along the carpet's inner border. */
+.bt .rug::before,.bt .rug::after{content:'';position:absolute;left:11px;right:11px;height:11px;
+  background:conic-gradient(from 135deg at 50% 0,#e8dcc0 90deg,transparent 0) 0 0/14px 11px;opacity:.9}
+.bt .rug::before{top:11px}
+.bt .rug::after{bottom:11px;transform:scaleY(-1)}
+.bt .felt{left:14%;right:14%;top:10%;bottom:21%;
+  background:radial-gradient(ellipse at 50% 36%,#3a8456,#22603b 55%,#164029);
+  box-shadow:0 0 0 6px #4a2410,0 0 0 9px #c8923a,0 0 0 12px #2a1208,0 16px 34px rgba(0,0,0,.7),inset 0 0 50px rgba(0,0,0,.45)}

@@ -113,7 +113,7 @@ const def: GameDef = {
         : `<button class="bb sun" data-pick="bid" data-bid="sun">صن</button>${Object.keys(SUIT).filter(x => x !== face).map(x => `<button class="bb hokm" data-pick="bid" data-bid="hokm" data-suit="${x}">حكم ${suitSVG(x, 'ins')}</button>`).join('')}<button class="bb pass" data-pick="bid" data-bid="pass">بس</button>`
     }
     const score = s.score ? `<div class="sb"><div class="us"><small>لنا</small><b>${s.score[t]}</b></div><div class="them"><small>لهم</small><b>${s.score[o]}</b></div><span class="tgt">إلى ${s.target}</span>${s.mode && s.phase !== 'bid' ? `<span class="md">${modeText(s.mode, s.trump)}</span>` : ''}</div>` : ''
-    return `<div class="bt"><div class="felt"></div>${score}${ORDER.map(player).join('')}<div class="tmid">${center}</div>${bids ? `<div class="bids">${bids}</div>` : ''}<div class="hand">${hand}</div></div>`
+    return `<div class="bt"><div class="rug"></div><div class="felt"></div>${score}${ORDER.map(player).join('')}<div class="tmid">${center}</div>${bids ? `<div class="bids">${bids}</div>` : ''}<div class="hand">${hand}</div></div>`
   },
 
   onSeat() {},
@@ -124,6 +124,16 @@ const def: GameDef = {
   changed(prev, c) {
     const s = c.state
     if (!prev) return
+    // Spoken calls: each new bid, the projects once they're shown, belote and kaboot.
+    for (const id of ORDER) {
+      const p = s.seats[id], q = prev.seats[id]
+      if (!p) continue
+      if (p.bid && p.bid !== q?.bid) c.speak(p.bid.startsWith('حكم') ? 'حكم' : p.bid)
+      const had = new Set<string>(q?.projects || [])
+      for (const x of (p.projects || []) as string[]) if (!had.has(x)) c.speak(x)
+      if (p.belote && !q?.belote) c.speak('بلوت')
+    }
+    if (prev.phase !== s.phase && s.phase === 'score' && s.result?.verdict === 'kaboot') c.speak('كبوت')
     if (prev.phase !== 'trick' && s.phase === 'trick') c.sfx('click')
     if (prev.phase !== s.phase && s.phase === 'score') c.sfx(s.result && (s.result.got[teamOf(c.me)] > s.result.got[teamOf(c.me) === 'a' ? 'b' : 'a']) ? 'heal' : 'hit')
     if (prev.phase !== s.phase && s.phase === 'over') c.sfx(s.winner === teamOf(c.me) ? 'win' : 'lose')
