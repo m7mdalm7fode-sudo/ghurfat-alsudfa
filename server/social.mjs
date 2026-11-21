@@ -22,7 +22,7 @@ export class SocialRoom {
     this.seats = Object.fromEntries(this.seatIds.map(s => [s, this.emptySeat()]))
     this.watchers = new Set(); this.phase = 'lobby'; this.ends = 0; this.log = []; this.notice = ''
   }
-  emptySeat() { return {token: '', socket: null, disconnectedAt: 0, name: '', inGame: false, alive: false, lastChat: 0} }
+  emptySeat() { return {token: '', socket: null, disconnectedAt: 0, name: '', inGame: false, alive: false, lastChat: 0, bot: false, auto: false, botAt: 0} }
   connected() { return this.seatIds.filter(s => isOpen(this.seats[s])) }
   /** People and bots sitting in the lobby. */
   present() { return this.seatIds.filter(s => isOpen(this.seats[s]) || this.seats[s].bot) }

@@ -39,6 +39,8 @@ export type GameDef = {
   guide?(ctx: Ctx): {text: string; mine: boolean; alert?: string}
   /** Optional overlay in the middle of the scene (the table for card games). */
   center?(ctx: Ctx): string
+  /** Seats go counter-clockwise: the next player sits on your right (بلوت). */
+  ccw?: boolean
   /** Extra line in the lobby card. */
   lobbyNote?: string
 }
@@ -191,7 +193,8 @@ export function mountSocial(def: GameDef) {
   function render() {
     const s = state, c = ctx()
     if (!s || !c) return
-    const ids = Object.keys(s.seats).filter(id => s.seats[id].inGame || s.phase === 'lobby' || s.seats[id].connected)
+    const ids = Object.keys(s.seats).filter(id => s.seats[id].inGame || s.phase === 'lobby' || s.seats[id].connected || s.seats[id].bot)
+    if (def.ccw) ids.reverse()
     const seats: CampSeat[] = ids.map(id => {
       const p = s.seats[id]
       return {id, char: id, name: p.name, present: true, alive: s.phase === 'lobby' || !p.inGame ? p.connected || Boolean(p.bot) : p.alive, me: id === me, turn: false, cta: '', tag: '', badges: '', dim: !p.connected && !p.bot, ...def.seat(id, p, c)}

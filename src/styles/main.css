@@ -385,3 +385,22 @@ button{cursor:pointer}
 .bots-row{align-items:center;gap:max(6px,.8cqw)}
 .bots-row .ghost{min-width:max(34px,4cqw);min-height:max(30px,4cqw);font-size:max(16px,2cqw);padding:0}
 .bots-row b{min-width:3em;text-align:center;color:var(--gold)}
+/* «بلوت» v2: pixel-art card images, a big centred hand, no instruction box. */
+.bcard{display:block;width:max(40px,6.4cqw);height:auto;aspect-ratio:30/42;image-rendering:pixelated;box-shadow:none;background:none;filter:drop-shadow(0 2px 0 rgba(0,0,0,.55))}
+.bcard.big{width:max(56px,8.4cqw)}
+.bcard.win{transform:translateY(-4px);filter:drop-shadow(0 0 0 #000) drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 3px var(--gold))}
+.app.baloot .sdock{flex-direction:column;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:max(4px,.6cqw)}
+.app.baloot .sdock .acts{order:-1;justify-content:center}
+.app.baloot .sdock .bhand{width:100%;justify-content:center;gap:max(3px,.5cqw)}
+.app.baloot .bhand .bcard{width:max(54px,8.6cqw)}
+.app.baloot .bbtn.ok .bcard{filter:drop-shadow(0 2px 0 rgba(0,0,0,.55)) drop-shadow(0 0 2px var(--gold)) drop-shadow(0 0 2px var(--gold))}
+.app.baloot .bbtn.ok{transform:translateY(-8px)}
+.app.baloot .bbtn.ok:hover{transform:translateY(-14px)}
+.app.baloot .bbtn.no{opacity:.4;transform:translateY(4px)}
+.app.baloot .table-center{top:44%}
+.app.baloot .btable{width:max(190px,27cqw);height:max(170px,24cqw)}
+.app.baloot .sdock .acts .ghost{min-height:max(38px,5cqw);font-size:max(14px,1.8cqw);min-width:max(64px,8cqw)}
+.btable .face small{order:-1}
+.app.baloot .camp .seat.front .plate{display:none}
+.app.baloot .bbtn.no{opacity:1;filter:brightness(.45) saturate(.6)}
+.app.baloot .btable .mode{display:none}

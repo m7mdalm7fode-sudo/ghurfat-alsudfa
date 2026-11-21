@@ -1,3 +1,4 @@
+import {cardURL} from '../ui/cards'
 import {icon} from '../ui/icons'
 import {esc, mountSocial, type Ctx, type GameDef} from './social'
 
@@ -17,7 +18,7 @@ const partner = (s: string) => ORDER[(ORDER.indexOf(s) + 2) % 4]
 
 export function cardHTML(c: string, cls = '') {
   const x = SUIT[suit(c)]
-  return `<span class="bcard ${x.red ? 'red' : ''} ${cls}"><b>${rank(c)}</b><i>${x.sym}</i></span>`
+  return `<img class="bcard ${cls}" src="${cardURL(c)}" alt="${rank(c)} ${x.name}" draggable="false">`
 }
 const modeText = (mode: string, trump: string) => mode === 'sun' ? 'صن ☀' : mode === 'hokm' ? `حكم ${SUIT[trump].sym} ${SUIT[trump].name}` : ''
 
@@ -40,7 +41,7 @@ const def: GameDef = {
   id: 'baloot', title: 'بلوت', titleHTML: '<em>بلوت</em>', theme: 'istiraha',
   eyebrow: 'لعبة ورق جماعية · ٤ لاعبين في فريقين · البوت يكمّل الناقص',
   tagline: 'ليلة استراحة، أنوار ملونة وفريقين متقابلين. اشترِ صن أو حكم، العب أكلاتك صح، وخلّ خويك يفهمك بدون كلام.',
-  rules, lineup: ORDER, lobbyNote: 'البلوت لازم أربعة: أي مقعد فاضي يكمّله بوت تلقائيًا عند البدء',
+  rules, lineup: ORDER, ccw: true, lobbyNote: 'البلوت لازم أربعة: أي مقعد فاضي يكمّله بوت تلقائيًا عند البدء',
   timerTotal: p => TOTAL[p] || 30000,
   mood: () => 'night',
 
@@ -74,30 +75,9 @@ const def: GameDef = {
     return `<b><span class="ok">لنا ${s.score[t]}</span> · <span class="bad">لهم ${s.score[o]}</span></b><small>من ${s.target}${s.mode ? ` · ${modeText(s.mode, s.trump)} — اشتراه ${esc(s.buyer === c.me ? 'أنت' : s.seats[s.buyer]?.name || '')}` : ''}</small>`
   },
 
-  guide(c) {
-    const s = c.state, me = s.seats[c.me], name = (id: string) => `<b>${esc(s.seats[id]?.name || '')}</b>`
-    if (!me?.inGame) return {text: 'أنت تشاهد — تدخل اللعبة الجاية', mine: false}
-    if (s.phase === 'bid') {
-      if (s.turn !== c.me) return {text: `${name(s.turn)} يقرر يشتري أو لا… شوف الورقة المكشوفة وجهّز رأيك`, mine: false}
-      return s.bidRound === 1
-        ? {text: `دورك تشتري: <b>حكم</b> = لون الورقة المكشوفة يصير الحكم · <b>صن</b> = بدون حكم · <b>بس</b> = ما تبي${s.hokmBy ? ` — ${name(s.hokmBy)} قال حكم، تقدر تقلبه صن` : ''}`, mine: true, alert: 'تشتري؟'}
-        : {text: 'الجولة الثانية: <b>صن</b>، أو <b>حكم</b> بأي لون غير لون الورقة المكشوفة، أو <b>بس</b>', mine: true, alert: 'تشتري؟'}
-    }
-    if (s.phase === 'play') {
-      if (s.turn !== c.me) return {text: `الدور عند ${name(s.turn)}${s.turn === partner(c.me) ? ' (خويك)' : ''} — انتظر`, mine: false}
-      if (!s.trick.length) return {text: 'دورك تبدأ: اضغط أي ورقة من يدك', mine: true}
-      const led = SUIT[suit(s.trick[0].card)]
-      return {text: `دورك: نزل لون <b>${led.sym} ${led.name}</b> — الأوراق المضيئة هي اللي تقدر تلعبها`, mine: true}
-    }
-    if (s.phase === 'trick') return {text: trickText(c), mine: false}
-    if (s.phase === 'score') return {text: 'انتهت الصفقة — الصفقة الجاية تبدأ بعد لحظات', mine: false}
-    if (s.phase === 'over') return {text: 'انتهت اللعبة — ترجعون للمجلس بعد لحظات', mine: false}
-    return {text: '', mine: false}
-  },
-
   center(c) {
     const s = c.state, me = c.me
-    const pos = (id: string) => ['b', 'l', 't', 'r'][(ORDER.indexOf(id) - ORDER.indexOf(me) + 4) % 4]
+    const pos = (id: string) => ['b', 'r', 't', 'l'][(ORDER.indexOf(id) - ORDER.indexOf(me) + 4) % 4]
     if (s.phase === 'bid' && s.face) return `<div class="btable"><div class="face">${cardHTML(s.face, 'big')}<small>الورقة المكشوفة</small></div></div>`
     if (s.phase === 'play' || s.phase === 'trick') {
       const win = s.phase === 'trick' && s.trick.length === 4 ? winner(s) : ''
