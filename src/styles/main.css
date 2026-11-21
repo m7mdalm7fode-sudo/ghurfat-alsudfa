@@ -558,3 +558,42 @@ button{cursor:pointer}
 .bt .bscore{background:rgba(14,19,21,.95);box-shadow:0 0 0 1px #8f7c5a,0 10px 30px rgba(0,0,0,.55)}
 .app.baloot .toast{background:rgba(12,16,18,.9);box-shadow:0 0 0 1px #8f7c5a}
 .update-bar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:99999;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:800;background:#e6d3a3;color:#1d1a14;box-shadow:0 0 0 2px #000,0 6px 18px rgba(0,0,0,.5);cursor:pointer}
+/* ---- Baloot animations ---- */
+/* Deal: cards fly from the middle of the table into your hand, one after another. */
+.bt .hc.deal .pc{animation:bl-deal .42s cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--d,0) * 75ms)}
+@keyframes bl-deal{from{transform:translate(0,-34cqw) scale(.45) rotate(-25deg);opacity:0}60%{opacity:1}to{transform:none}}
+/* A played card slides in from its player's side. */
+.bt .tk.in.b .pc{animation:bl-in-b .3s ease-out}
+.bt .tk.in.t .pc{animation:bl-in-t .3s ease-out}
+.bt .tk.in.l .pc{animation:bl-in-l .3s ease-out}
+.bt .tk.in.r .pc{animation:bl-in-r .3s ease-out}
+@keyframes bl-in-b{from{transform:translateY(26cqw) scale(1.25);opacity:.2}}
+@keyframes bl-in-t{from{transform:translateY(-22cqw) scale(.7);opacity:.2}}
+@keyframes bl-in-l{from{transform:translateX(-30cqw) scale(.7);opacity:.2}}
+@keyframes bl-in-r{from{transform:translateX(30cqw) scale(.7);opacity:.2}}
+.bt .tk.win .pc{box-shadow:0 0 0 3px #e6d3a3,0 0 18px 3px rgba(230,211,163,.6)}
+/* The winner collects the trick: all four cards slide toward him and fade. */
+.bt .tmid.take-b .tk .pc{animation:bl-take-b .45s .7s ease-in forwards}
+.bt .tmid.take-t .tk .pc{animation:bl-take-t .45s .7s ease-in forwards}
+.bt .tmid.take-l .tk .pc{animation:bl-take-l .45s .7s ease-in forwards}
+.bt .tmid.take-r .tk .pc{animation:bl-take-r .45s .7s ease-in forwards}
+@keyframes bl-take-b{to{transform:translateY(28cqw) scale(.45);opacity:0}}
+@keyframes bl-take-t{to{transform:translateY(-24cqw) scale(.45);opacity:0}}
+@keyframes bl-take-l{to{transform:translateX(-34cqw) scale(.45);opacity:0}}
+@keyframes bl-take-r{to{transform:translateX(34cqw) scale(.45);opacity:0}}
+/* Projects spread face-up in front of their owners. */
+.bt .shows{position:absolute;inset:0;pointer-events:none;z-index:7}
+.bt .show{position:absolute;display:grid;justify-items:center;gap:4px}
+.bt .show.b{left:50%;bottom:33%;transform:translateX(-50%)}
+.bt .show.t{left:50%;top:21%;transform:translateX(-50%)}
+.bt .show.l{left:13%;top:36%}
+.bt .show.r{right:13%;top:36%}
+.bt .show .fan{display:flex;direction:ltr}
+.bt .show .fan span{margin-left:-2.6cqw;animation:bl-spread .35s cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--k) * 90ms)}
+.bt .show .fan span:first-child{margin-left:0}
+.bt .show .pc{width:max(40px,5.6cqw)}
+.bt .show b{background:rgba(12,16,18,.9);color:#e6d3a3;padding:2px 10px;border-radius:10px;font-size:max(11px,1.35cqw);white-space:nowrap}
+@keyframes bl-spread{from{transform:translateY(8cqw) scale(.6);opacity:0}}
+.bt .bb.decl{background:#4f7a62;color:#fff;animation:bl-pulse 1.1s ease-in-out infinite}
+@keyframes bl-pulse{50%{box-shadow:0 3px 0 #000,0 0 0 2px #000,0 0 16px 4px rgba(127,190,150,.6)}}
+.calm .bt *{animation-duration:.01s !important;animation-delay:0s !important}

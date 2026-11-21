@@ -6,7 +6,7 @@ import {SocialRoom, shuffle, BOT_NAMES} from './social.mjs'
 
 const K = Number(process.env.SOCIAL_SPEED || 1)
 const ms = v => Math.max(40, Math.round(v * K))
-const T = {bid: 25000, play: 30000, trick: 1500, score: 9000, over: 25000, bot: 900}
+const T = {bid: 25000, play: 30000, trick: 1500, show: 3200, score: 9000, over: 25000, bot: 900}
 export const SUITS = ['S', 'H', 'C', 'D']
 export const RANKS = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A']
 export const SUIT_NAME = {S: 'سبيت', H: 'هاص', D: 'ديمن', C: 'شريا'}
@@ -53,7 +53,7 @@ export class BalootRoom extends SocialRoom {
   clearRound() {
     this.hands = {p1: [], p2: [], p3: [], p4: []}; this.deck = []; this.face = ''; this.bids = {}; this.bidRound = 0; this.hokmBy = ''; this.bidCount = 0
     this.mode = ''; this.trump = ''; this.buyer = ''; this.turn = ''; this.trick = []; this.last = null; this.taken = {a: 0, b: 0}; this.tricks = {a: 0, b: 0}
-    this.projects = {}; this.shown = false; this.belote = ''; this.seen = new Set(); this.voids = {p1: new Set(), p2: new Set(), p3: new Set(), p4: new Set()}
+    this.projects = {}; this.declared = {}; this.nextLead = ''; this.shown = false; this.belote = ''; this.seen = new Set(); this.voids = {p1: new Set(), p2: new Set(), p3: new Set(), p4: new Set()}
   }
   isBot(s) { return Boolean(this.seats[s]?.bot) }
 
@@ -84,6 +84,7 @@ export class BalootRoom extends SocialRoom {
   act(seat, m) {
     if (this.phase === 'bid' && m.kind === 'bid') return this.bid(seat, m.bid, m.suit)
     if (this.phase === 'play' && m.kind === 'play') return this.play(seat, String(m.card || ''))
+    if (this.phase === 'play' && m.kind === 'declare') return this.canDeclare(seat) ? this.declare(seat) : this.err(seat, 'not_ready')
     this.err(seat, 'not_ready')
   }
 
@@ -155,9 +156,17 @@ export class BalootRoom extends SocialRoom {
     return up.length ? up : trumps
   }
 
+  /** A project counts only if its owner declares it before playing his first card. Bots always declare. */
+  canDeclare(seat) { return this.phase === 'play' && !this.shown && this.hands[seat]?.length === 8 && Boolean(this.projects[seat]) && !this.declared[seat] }
+  declare(seat) {
+    this.declared[seat] = this.projects[seat]
+    this.event(`📣 ${this.name(seat)}: ${this.projects[seat].map(p => PROJ[p.kind].name).join(' + ')}`, 'project')
+  }
+
   play(seat, card) {
     if (seat !== this.turn) return this.err(seat, 'not_your_turn')
     if (!this.legal(seat).includes(card)) return this.err(seat, this.hands[seat].includes(card) ? 'must_follow' : 'invalid_message')
+    if (this.isBot(seat) && this.canDeclare(seat)) this.declare(seat)
     this.hands[seat].splice(this.hands[seat].indexOf(card), 1)
     if (this.trick.length) {
       const led = suit(this.trick[0].card)
@@ -180,8 +189,8 @@ export class BalootRoom extends SocialRoom {
     this.trick = []
     if (!this.shown) {
       this.shown = true
-      const list = Object.entries(this.projects).map(([s, ps]) => `${this.name(s)}: ${ps.map(p => PROJ[p.kind].name).join(' + ')}`)
-      if (list.length) this.event(`المشاريع — ${list.join(' · ')}`, 'project')
+      // Undeclared projects are lost; declared ones are laid out on the table for everyone to see.
+      if (Object.keys(this.declared).length) { this.nextLead = w.seat; return this.setPhase('show', ms(T.show), 'المشاريع على الطاولة') }
     }
     if (!this.hands[w.seat].length) { this.taken[t] += 10; return this.scoreRound(w.seat) }
     this.setPhase('play', 0, `${this.name(w.seat)} أكل ${pts ? `(${pts})` : ''} ويبدأ`)
@@ -191,13 +200,13 @@ export class BalootRoom extends SocialRoom {
   /** Only the team holding the best single project scores its projects. */
   projectPoints() {
     let best = null
-    for (const s of ORDER) for (const p of this.projects[s] || []) {
+    for (const s of ORDER) for (const p of this.declared[s] || []) {
       const key = PROJ[p.kind].rank * 100 + p.top
       if (!best || key > best.key) best = {key, team: team(s)}
     }
     const out = {a: 0, b: 0}
     if (!best) return out
-    for (const s of ORDER) if (team(s) === best.team) for (const p of this.projects[s] || []) out[best.team] += PROJ[p.kind][this.mode]
+    for (const s of ORDER) if (team(s) === best.team) for (const p of this.declared[s] || []) out[best.team] += PROJ[p.kind][this.mode]
     return out
   }
 
@@ -233,6 +242,7 @@ export class BalootRoom extends SocialRoom {
     if (this.phase === 'bid') return this.autoBid(this.turn)
     if (this.phase === 'play') return this.play(this.turn, this.autoCard(this.turn))
     if (this.phase === 'trick') return this.collect()
+    if (this.phase === 'show') { this.setPhase('play', 0, `${this.name(this.nextLead)} يبدأ`); return this.setTurn(this.nextLead) }
     if (this.phase === 'score') return this.deal()
     if (this.phase === 'over') this.toLobby()
   }
@@ -323,7 +333,7 @@ export class BalootRoom extends SocialRoom {
 
   publicSeat(s) {
     return {char: s, bot: this.isBot(s), team: team(s), count: this.hands[s]?.length || 0, bid: this.bids[s] || '',
-      projects: this.shown ? (this.projects[s] || []).map(p => PROJ[p.kind].name) : [], belote: this.shown && this.belote === s}
+      projects: (this.declared[s] || []).map(p => PROJ[p.kind].name), shows: this.phase === 'show' ? (this.declared[s] || []).flatMap(p => p.cards) : [], belote: this.shown && this.belote === s}
   }
   publicView() {
     return {round: this.round, dealer: this.dealer, turn: this.turn, mode: this.mode, trump: this.trump, buyer: this.buyer, face: this.face, bidRound: this.bidRound, hokmBy: this.hokmBy,
@@ -332,6 +342,6 @@ export class BalootRoom extends SocialRoom {
   privateView(s) {
     if (!this.hands[s]) return null
     const hand = [...this.hands[s]].sort((a, b) => SUITS.indexOf(suit(a)) - SUITS.indexOf(suit(b)) || (this.mode === 'hokm' && suit(a) === this.trump ? HOKM_ORDER : SUN_ORDER).indexOf(rank(b)) - (this.mode === 'hokm' && suit(a) === this.trump ? HOKM_ORDER : SUN_ORDER).indexOf(rank(a)))
-    return {hand, legal: this.phase === 'play' && this.turn === s ? this.legal(s) : [], team: team(s), projects: (this.projects[s] || []).map(p => PROJ[p.kind].name)}
+    return {hand, legal: this.phase === 'play' && this.turn === s ? this.legal(s) : [], team: team(s), projects: (this.projects[s] || []).map(p => PROJ[p.kind].name), canDeclare: this.canDeclare(s)}
   }
 }

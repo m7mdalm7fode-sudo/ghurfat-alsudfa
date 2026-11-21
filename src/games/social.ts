@@ -45,6 +45,8 @@ export type GameDef = {
   ccw?: boolean
   /** A full custom table drawn in HTML instead of the campfire scene (card games). */
   scene?(ctx: Ctx): string
+  /** Same, but the game updates the element itself (keeps nodes so animations run once). */
+  paint?(el: HTMLElement, ctx: Ctx): void
   /** Extra line in the lobby card. */
   lobbyNote?: string
 }
@@ -211,6 +213,7 @@ export function mountSocial(def: GameDef) {
       const p = s.seats[id]
       return {id, char: id, name: p.name, present: true, alive: s.phase === 'lobby' || !p.inGame ? p.connected || Boolean(p.bot) : p.alive, me: id === me, turn: false, cta: '', tag: '', badges: '', dim: !p.connected && !p.bot, ...def.seat(id, p, c)}
     })
+    if (def.paint) { const sc = $('.scene'); sc.hidden = false; def.paint(sc, c); camp.setActive(false) }
     if (def.scene) { const sc = $('.scene'); sc.hidden = false; setHTML(sc, def.scene(c)); camp.setActive(false) }
     camp.mood = def.mood(s)
     camp.update(seats, me)
@@ -280,13 +283,13 @@ export function mountSocial(def: GameDef) {
     else { const c = ctx(); if (c) def.onAction(el, c) }
   })
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { for (const k of Object.keys(sel)) delete sel[k]; render() } })
-  window.setInterval(() => { if (!def.scene && view.classList.contains('is-live') && !document.hidden && Math.random() < .3) sfx('crackle') }, 160)
+  window.setInterval(() => { if (!def.scene && !def.paint && view.classList.contains('is-live') && !document.hidden && Math.random() < .3) sfx('crackle') }, 160)
 
   title.classList.add('is-active')
   const frame = (now: number) => {
     if (state && endsAt && state.phase !== 'lobby') {
       const left = Math.max(0, endsAt - now), total = def.timerTotal(state.phase)
-      if (def.scene) root.querySelector<HTMLElement>('.app')!.style.setProperty('--tp', String(Math.min(1, left / total)))
+      if (def.scene || def.paint) root.querySelector<HTMLElement>('.app')!.style.setProperty('--tp', String(Math.min(1, left / total)))
       timer.style.setProperty('--p', String(Math.min(1, left / total)))
       timer.classList.toggle('on', left > 0)
       timer.classList.toggle('low', left < 8000)

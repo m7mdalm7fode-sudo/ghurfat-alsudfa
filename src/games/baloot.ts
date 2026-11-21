@@ -11,10 +11,12 @@ const SUIT: Record<string, {sym: string; name: string; red: boolean}> = {
   S: {sym: '♠', name: 'سبيت', red: false}, H: {sym: '♥', name: 'هاص', red: true}, C: {sym: '♣', name: 'شريا', red: false}, D: {sym: '♦', name: 'ديمن', red: true},
 }
 const ORDER = ['p1', 'p2', 'p3', 'p4']
-const TOTAL: Record<string, number> = {bid: 25000, play: 30000, trick: 1500, score: 9000, over: 25000}
+const TOTAL: Record<string, number> = {bid: 25000, play: 30000, trick: 1500, show: 3200, score: 9000, over: 25000}
 const rank = (c: string) => c.slice(0, -1), suit = (c: string) => c.slice(-1)
 const teamOf = (s: string) => (s === 'p1' || s === 'p3' ? 'a' : 'b')
 const partner = (s: string) => ORDER[(ORDER.indexOf(s) + 2) % 4]
+/** Table nodes kept between updates so animations play once. */
+const view = {hand: new Map<string, HTMLButtonElement>(), slots: {} as Record<string, string>, round: -1}
 
 export function cardHTML(c: string, cls = '') {
   const x = SUIT[suit(c)]
@@ -66,60 +68,111 @@ const def: GameDef = {
 
   dock: () => '',
 
-  /** The whole table, seen from above: you at the bottom, your partner across, play goes to your right. */
-  scene(c) {
+  /**
+   * The whole table, seen from above: you at the bottom, your partner across, play goes to your right.
+   * Painted piece by piece (not one big innerHTML) so the deal, play and collect animations run once.
+   */
+  paint(el, c) {
     const s = c.state, me = c.me, mine = s.mine
     const at = (id: string) => ['b', 'r', 't', 'l'][(ORDER.indexOf(id) - ORDER.indexOf(me) + 4) % 4]
     const live = s.phase === 'bid' || s.phase === 'play'
     const t = teamOf(me), o = t === 'a' ? 'b' : 'a'
-    const player = (id: string) => {
-      const p = s.seats[id], pos = at(id)
-      if (!p) return `<div class="pl ${pos} empty"><span class="av"></span><span class="nm">فاضي</span></div>`
+    if (!el.querySelector('.bt')) {
+      el.innerHTML = `<div class="bt"><div class="felt"></div><div class="sbw"></div>${['b', 'r', 't', 'l'].map(p => `<div class="plw" data-pos="${p}"></div>`).join('')}
+        <div class="tmid">${['b', 'r', 't', 'l'].map(p => `<div class="tk ${p}"></div>`).join('')}<div class="tcenter"></div></div>
+        <div class="shows"></div><div class="bids"></div><div class="hand"></div></div>`
+      view.hand.clear(); view.slots = {}; view.round = -1
+    }
+    const $ = (q: string) => el.querySelector<HTMLElement>(q)!
+    const set = (node: HTMLElement, html: string) => { if (node.dataset.html !== html) { node.dataset.html = html; node.innerHTML = html } }
+
+    // Scoreboard.
+    set($('.sbw'), s.score ? `<div class="sb"><div class="us"><small>لنا</small><b>${s.score[t]}</b></div><div class="them"><small>لهم</small><b>${s.score[o]}</b></div><span class="tgt">إلى ${s.target}</span>${s.mode && s.phase !== 'bid' ? `<span class="md">${modeText(s.mode, s.trump)}</span>` : ''}</div>` : '')
+
+    // Players around the table.
+    for (const id of ORDER) {
+      const p = s.seats[id], pos = at(id), w = $(`.plw[data-pos="${pos}"]`)
+      if (!p) { set(w, `<div class="pl ${pos} empty"><span class="av"></span><span class="nm">فاضي</span></div>`); continue }
       const turn = live && s.turn === id, ours = teamOf(id) === t
       const bid = s.phase === 'bid' && p.bid ? `<i class="bub">${esc(p.bid)}</i>` : ''
       const buy = s.buyer === id && s.mode && s.phase !== 'bid' ? `<i class="buy">${modeText(s.mode, s.trump)}</i>` : ''
       const proj = [...(p.projects || []), ...(p.belote ? ['بلوت'] : [])].map((x: string) => `<i class="proj">${x}</i>`).join('')
       const backs = pos !== 'b' && p.count ? `<span class="backs">${Array.from({length: p.count}, () => '<i></i>').join('')}</span>` : ''
       const tag = id === me ? 'أنت' : id === partner(me) ? 'خويك' : ''
-      return `<div class="pl ${pos} ${turn ? 'turn' : ''} ${ours ? 'ours' : 'theirs'}">
+      set(w, `<div class="pl ${pos} ${turn ? 'turn' : ''} ${ours ? 'ours' : 'theirs'}">
         <span class="av"><img src="${portraitURL(id)}" alt=""></span>
         <span class="nm">${esc(p.name)}${tag ? `<small>${tag}</small>` : ''}</span>
-        <span class="tags">${bid}${buy}${proj}</span>${backs}</div>`
+        <span class="tags">${bid}${buy}${proj}</span>${backs}</div>`)
     }
+
+    // Trick: each card flies in from its player's side; when the trick is complete it slides to the winner.
+    const inTrick = s.phase === 'play' || s.phase === 'trick'
+    const win = s.phase === 'trick' && s.trick.length === 4 ? winner(s) : ''
+    for (const pos of ['b', 'r', 't', 'l']) {
+      const slot = $(`.tk.${pos}`), card = inTrick ? (s.trick.find((x: {seat: string}) => at(x.seat) === pos)?.card || '') : ''
+      if (view.slots[pos] !== card) {
+        view.slots[pos] = card
+        slot.innerHTML = card ? cardFace(card) : ''
+        slot.classList.remove('in'); if (card) { void slot.offsetWidth; slot.classList.add('in') }
+      }
+      slot.classList.toggle('win', Boolean(win) && s.trick.some((x: {seat: string}) => x.seat === win && at(x.seat) === pos))
+    }
+    $('.tmid').className = `tmid${win ? ` take-${at(win)}` : ''}`
     let center = ''
     if (s.phase === 'bid' && s.face) center = `<div class="upcard">${cardFace(s.face)}<small>${s.bidRound === 2 ? 'الشراء الثاني' : 'الورقة المكشوفة'}</small></div>`
-    else if (s.phase === 'play' || s.phase === 'trick') {
-      const win = s.phase === 'trick' && s.trick.length === 4 ? winner(s) : ''
-      center = s.trick.map((x: {seat: string; card: string}) => `<div class="tk ${at(x.seat)}">${cardFace(x.card, x.seat === win ? 'win' : '')}</div>`).join('') + (win ? `<div class="cap">${trickText(c)}</div>` : '')
-    } else if ((s.phase === 'score' || s.phase === 'over') && s.result) {
+    else if (win) center = `<div class="cap">${trickText(c)}</div>`
+    else if ((s.phase === 'score' || s.phase === 'over') && s.result) {
       const r = s.result
       const head = s.phase === 'over' ? (s.winner === t ? '🏆 فزتم باللعبة!' : 'فازوا باللعبة') : r.verdict === 'kaboot' ? (r.kaboot === t ? 'كبوت! أكلتوا كل الأكلات' : 'كبوت عليكم!') : r.verdict === 'made' ? `${teamOf(r.buyer) === t ? 'نجحتوا' : 'نجحوا'} في الشراء` : `${teamOf(r.buyer) === t ? 'خسرتوا' : 'خسروا'} الشراء`
       const row = (label: string, a: number, b: number) => `<tr><td>${label}</td><td>${a}</td><td>${b}</td></tr>`
       center = `<div class="bscore"><b>${head}</b><table><tr><th></th><th>لنا</th><th>لهم</th></tr>${row('الأكل', r.raw[t], r.raw[o])}${row('النقاط', r.card[t], r.card[o])}${r.proj[t] || r.proj[o] ? row('المشاريع', r.proj[t], r.proj[o]) : ''}${r.bel[t] || r.bel[o] ? row('بلوت', r.bel[t], r.bel[o]) : ''}${row('هالصفقة', r.got[t], r.got[o])}<tr class="tot"><td>المجموع</td><td>${s.score[t]}</td><td>${s.score[o]}</td></tr></table></div>`
     }
-    // Your hand, fanned; playable cards lift up when it's your turn.
-    let hand = '', bids = ''
-    if (mine?.hand?.length && s.phase !== 'lobby') {
-      const myTurn = s.phase === 'play' && s.turn === me, legal = new Set<string>(mine.legal || []), n = mine.hand.length
-      hand = (mine.hand as string[]).map((card, i) => {
-        const ok = myTurn && legal.has(card)
-        return `<button class="hc ${ok ? 'ok' : myTurn ? 'no' : ''}" style="--i:${i - (n - 1) / 2}" data-card="${card}" ${ok ? '' : 'disabled'} aria-label="${card}">${cardFace(card)}</button>`
-      }).join('')
-    }
+    set($('.tcenter'), center)
+
+    // Declared projects laid out in front of their owners after the first trick.
+    set($('.shows'), s.phase === 'show' ? ORDER.filter(id => s.seats[id]?.shows?.length).map(id => {
+      const p = s.seats[id]
+      return `<div class="show ${at(id)}"><div class="fan">${(p.shows as string[]).map((x, i) => `<span style="--k:${i}">${cardFace(x)}</span>`).join('')}</div><b>${esc(id === me ? 'مشروعك' : p.name)}: ${(p.projects || []).join(' + ')}</b></div>`
+    }).join('') : '')
+
+    // Buttons: buying, or declaring a project before your first card.
+    let bids = ''
     if (s.phase === 'bid' && s.turn === me) {
       const face = s.face ? suit(s.face) : ''
       bids = s.bidRound === 1
         ? `${!s.hokmBy ? `<button class="bb hokm" data-pick="bid" data-bid="hokm">حكم ${suitSVG(face, 'ins')}</button>` : ''}<button class="bb sun" data-pick="bid" data-bid="sun">صن</button><button class="bb pass" data-pick="bid" data-bid="pass">${s.hokmBy ? 'أشكل' : 'بس'}</button>`
         : `<button class="bb sun" data-pick="bid" data-bid="sun">صن</button>${Object.keys(SUIT).filter(x => x !== face).map(x => `<button class="bb hokm" data-pick="bid" data-bid="hokm" data-suit="${x}">حكم ${suitSVG(x, 'ins')}</button>`).join('')}<button class="bb pass" data-pick="bid" data-bid="pass">بس</button>`
-    }
-    const score = s.score ? `<div class="sb"><div class="us"><small>لنا</small><b>${s.score[t]}</b></div><div class="them"><small>لهم</small><b>${s.score[o]}</b></div><span class="tgt">إلى ${s.target}</span>${s.mode && s.phase !== 'bid' ? `<span class="md">${modeText(s.mode, s.trump)}</span>` : ''}</div>` : ''
-    return `<div class="bt"><div class="rug"></div><div class="felt"></div>${score}${ORDER.map(player).join('')}<div class="tmid">${center}</div>${bids ? `<div class="bids">${bids}</div>` : ''}<div class="hand">${hand}</div></div>`
+    } else if (mine?.canDeclare) bids = `<button class="bb decl" data-pick="declare">📣 أعلن مشروعك: ${(mine.projects as string[]).join(' + ')}</button>`
+    set($('.bids'), bids)
+
+    // Hand: cards are kept as nodes; new ones are dealt in with a stagger, played ones leave.
+    const handEl = $('.hand')
+    const want: string[] = s.phase !== 'lobby' && mine?.hand ? mine.hand : []
+    if (s.round !== view.round) { view.round = s.round; for (const b of view.hand.values()) b.remove(); view.hand.clear() }
+    for (const [card, b] of view.hand) if (!want.includes(card)) { b.remove(); view.hand.delete(card) }
+    const myTurn = s.phase === 'play' && s.turn === me, legal = new Set<string>(mine?.legal || []), n = want.length
+    let dealt = 0
+    want.forEach((card, i) => {
+      let b = view.hand.get(card)
+      if (!b) {
+        b = document.createElement('button'); b.className = 'hc deal'; b.dataset.card = card; b.setAttribute('aria-label', card)
+        b.innerHTML = cardFace(card); b.style.setProperty('--d', String(dealt++))
+        const nextOld = want.slice(i + 1).map(x => view.hand.get(x)).find(Boolean)
+        handEl.insertBefore(b, nextOld || null)
+        view.hand.set(card, b)
+      }
+      const ok = myTurn && legal.has(card)
+      b.style.setProperty('--i', String(i - (n - 1) / 2))
+      b.classList.toggle('ok', ok); b.classList.toggle('no', myTurn && !ok); b.disabled = !ok
+    })
+    if (dealt) c.sfx('load')
   },
 
   onSeat() {},
   onAction(el, c) {
     if (el.dataset.card) c.send({kind: 'play', card: el.dataset.card})
     if (el.dataset.pick === 'bid') c.send({kind: 'bid', bid: el.dataset.bid, suit: el.dataset.suit})
+    if (el.dataset.pick === 'declare') c.send({kind: 'declare'})
   },
   changed(prev, c) {
     // The device voice adds vowels to bare words ("بسا", "صنا", "سررا"): read fully voweled spellings instead.
