@@ -122,18 +122,21 @@ const def: GameDef = {
     if (el.dataset.pick === 'bid') c.send({kind: 'bid', bid: el.dataset.bid, suit: el.dataset.suit})
   },
   changed(prev, c) {
+    // The device voice adds vowels to bare words ("بسا", "صنا", "سررا"): read fully voweled spellings instead.
+    const SAY: Record<string, string> = {'بس': 'بَسْ.', 'صن': 'صَنْ.', 'حكم': 'حُكُمْ.', 'أشكل': 'أَشْكِلْ.', 'سرا': 'سِرَا.', 'خمسين': 'خَمْسِينْ.', 'مية': 'مِيَّهْ.', 'أربعمية': 'أَرْبَعْمِيَّهْ.', 'بلوت': 'بَلُوتْ.', 'كبوت': 'كَبُوتْ.'}
+    const say = (w: string) => c.speak(SAY[w] || w)
     const s = c.state
     if (!prev) return
     // Spoken calls: each new bid, the projects once they're shown, belote and kaboot.
     for (const id of ORDER) {
       const p = s.seats[id], q = prev.seats[id]
       if (!p) continue
-      if (p.bid && p.bid !== q?.bid) c.speak(p.bid.startsWith('حكم') ? 'حكم' : p.bid)
+      if (p.bid && p.bid !== q?.bid) say(p.bid.startsWith('حكم') ? 'حكم' : p.bid)
       const had = new Set<string>(q?.projects || [])
-      for (const x of (p.projects || []) as string[]) if (!had.has(x)) c.speak(x)
-      if (p.belote && !q?.belote) c.speak('بلوت')
+      for (const x of (p.projects || []) as string[]) if (!had.has(x)) say(x)
+      if (p.belote && !q?.belote) say('بلوت')
     }
-    if (prev.phase !== s.phase && s.phase === 'score' && s.result?.verdict === 'kaboot') c.speak('كبوت')
+    if (prev.phase !== s.phase && s.phase === 'score' && s.result?.verdict === 'kaboot') say('كبوت')
     if (prev.phase !== 'trick' && s.phase === 'trick') c.sfx('click')
     if (prev.phase !== s.phase && s.phase === 'score') c.sfx(s.result && (s.result.got[teamOf(c.me)] > s.result.got[teamOf(c.me) === 'a' ? 'b' : 'a']) ? 'heal' : 'hit')
     if (prev.phase !== s.phase && s.phase === 'over') c.sfx(s.winner === teamOf(c.me) ? 'win' : 'lose')
